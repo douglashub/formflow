@@ -1,0 +1,3128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FormFlow - Sistema de Formulários</title>
+    
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- jsPDF para exportação PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- html-docx-js para exportação DOC -->
+    <script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
+    
+    <!-- Fonte Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Ícones Lucide -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            300: '#a5b4fc',
+                            400: '#818cf8',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                            950: '#1e1b4b',
+                        },
+                        dark: {
+                            50: '#f8fafc',
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            300: '#cbd5e1',
+                            400: '#94a3b8',
+                            500: '#64748b',
+                            600: '#475569',
+                            700: '#334155',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Animações suaves */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(0); }
+        }
+        
+        /* Scrollbar personalizada */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        
+        /* Cards com hover suave */
+        .card-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+        }
+        
+        /* Botões com efeito de clique */
+        .btn-press:active {
+            transform: scale(0.98);
+        }
+        
+        /* Toast notifications */
+        .toast {
+            animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 2.7s forwards;
+        }
+        
+        @keyframes toastIn {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        @keyframes toastOut {
+            from { transform: translateY(0); opacity: 1; }
+            to { transform: translateY(100%); opacity: 0; }
+        }
+        
+        /* Modal backdrop */
+        .modal-backdrop {
+            backdrop-filter: blur(4px);
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 0.8s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Status badges */
+        .status-pendente { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .status-lido { background: linear-gradient(135deg, #10b981, #059669); }
+        .status-arquivado { background: linear-gradient(135deg, #6b7280, #4b5563); }
+        
+        /* =====================================================
+           TEMA CLARO - Sobrescreve as cores dark-* quando ativo
+           ===================================================== */
+        html body.theme-light {
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        html body.theme-light .bg-dark-950 { background-color: #f8fafc !important; }
+        html body.theme-light .bg-dark-900 { background-color: #ffffff !important; }
+        html body.theme-light .bg-dark-800 { background-color: #f1f5f9 !important; }
+        html body.theme-light .bg-dark-700 { background-color: #e2e8f0 !important; }
+        html body.theme-light .bg-dark-600 { background-color: #cbd5e1 !important; }
+        html body.theme-light .border-dark-700 { border-color: #e2e8f0 !important; }
+        html body.theme-light .border-dark-600 { border-color: #cbd5e1 !important; }
+        html body.theme-light .text-dark-300 { color: #334155 !important; }
+        html body.theme-light .text-dark-400 { color: #475569 !important; }
+        html body.theme-light .text-dark-500 { color: #64748b !important; }
+        html body.theme-light .text-dark-600 { color: #94a3b8 !important; }
+        html body.theme-light .hover\:bg-dark-800:hover { background-color: #e2e8f0 !important; }
+        html body.theme-light .hover\:bg-dark-700:hover { background-color: #cbd5e1 !important; }
+        html body.theme-light .hover\:text-white:hover { color: #0f172a !important; }
+        html body.theme-light .hover\:text-dark-400:hover { color: #475569 !important; }
+        html body.theme-light .bg-dark-900\/50 { background-color: rgba(255,255,255,0.8) !important; }
+        html body.theme-light .bg-dark-900\/95 { background-color: rgba(255,255,255,0.95) !important; }
+        html body.theme-light .bg-dark-800\/50 { background-color: rgba(241,245,249,0.8) !important; }
+        html body.theme-light .bg-dark-800\/80 { background-color: rgba(241,245,249,0.9) !important; }
+        html body.theme-light .bg-dark-700\/50 { background-color: rgba(226,232,240,0.8) !important; }
+        html body.theme-light .bg-dark-700\/30 { background-color: rgba(226,232,240,0.5) !important; }
+        html body.theme-light .bg-black\/50 { background-color: rgba(15,23,42,0.5) !important; }
+        html body.theme-light .text-white { color: #0f172a !important; }
+        html body.theme-light .text-white\/70 { color: rgba(15,23,42,0.7) !important; }
+        html body.theme-light .text-white\/80 { color: rgba(15,23,42,0.8) !important; }
+        html body.theme-light .text-white\/90 { color: rgba(15,23,42,0.9) !important; }
+        html body.theme-light .divide-dark-700 > * + * { border-color: #e2e8f0 !important; }
+        html body.theme-light .from-dark-950 { --tw-gradient-from: #f8fafc !important; }
+        html body.theme-light .via-dark-950 { --tw-gradient-stops: #f8fafc !important; }
+        html body.theme-light .to-dark-950 { --tw-gradient-to: #f8fafc !important; }
+        html body.theme-light .bg-dark-950\/50 { background-color: rgba(248,250,252,0.5) !important; }
+        html body.theme-light .bg-dark-950\/80 { background-color: rgba(248,250,252,0.8) !important; }
+        html body.theme-light .bg-dark-950\/90 { background-color: rgba(248,250,252,0.9) !important; }
+        html body.theme-light .bg-dark-950\/95 { background-color: rgba(248,250,252,0.95) !important; }
+        html body.theme-light .bg-dark-900\/60 { background-color: rgba(255,255,255,0.85) !important; }
+        html body.theme-light .bg-dark-900\/70 { background-color: rgba(255,255,255,0.9) !important; }
+        html body.theme-light .bg-dark-900\/80 { background-color: rgba(255,255,255,0.95) !important; }
+        html body.theme-light .bg-dark-900\/90 { background-color: rgba(255,255,255,0.97) !important; }
+        html body.theme-light .bg-dark-800\/60 { background-color: rgba(241,245,249,0.9) !important; }
+        html body.theme-light .bg-dark-800\/70 { background-color: rgba(241,245,249,0.92) !important; }
+        html body.theme-light .bg-dark-800\/90 { background-color: rgba(241,245,249,0.97) !important; }
+        html body.theme-light .bg-dark-700\/60 { background-color: rgba(226,232,240,0.9) !important; }
+        html body.theme-light .bg-dark-700\/70 { background-color: rgba(226,232,240,0.92) !important; }
+        html body.theme-light .bg-dark-700\/80 { background-color: rgba(226,232,240,0.95) !important; }
+        html body.theme-light .bg-dark-700\/90 { background-color: rgba(226,232,240,0.97) !important; }
+        html body.theme-light .bg-dark-600\/20 { background-color: rgba(203,213,225,0.3) !important; }
+        html body.theme-light .bg-dark-600\/30 { background-color: rgba(203,213,225,0.4) !important; }
+        html body.theme-light .bg-dark-600\/40 { background-color: rgba(203,213,225,0.5) !important; }
+        html body.theme-light .bg-dark-600\/50 { background-color: rgba(203,213,225,0.6) !important; }
+        html body.theme-light .bg-dark-600\/60 { background-color: rgba(203,213,225,0.7) !important; }
+        html body.theme-light .bg-dark-600\/70 { background-color: rgba(203,213,225,0.8) !important; }
+        html body.theme-light .bg-dark-600\/80 { background-color: rgba(203,213,225,0.9) !important; }
+        html body.theme-light .bg-dark-600\/90 { background-color: rgba(203,213,225,0.95) !important; }
+        html body.theme-light .bg-dark-500\/10 { background-color: rgba(100,116,139,0.1) !important; }
+        html body.theme-light .bg-dark-500\/20 { background-color: rgba(100,116,139,0.15) !important; }
+        html body.theme-light .bg-dark-500\/30 { background-color: rgba(100,116,139,0.2) !important; }
+        html body.theme-light .bg-dark-500\/40 { background-color: rgba(100,116,139,0.25) !important; }
+        html body.theme-light .bg-dark-500\/50 { background-color: rgba(100,116,139,0.3) !important; }
+        html body.theme-light .bg-dark-500\/60 { background-color: rgba(100,116,139,0.35) !important; }
+        html body.theme-light .bg-dark-500\/70 { background-color: rgba(100,116,139,0.4) !important; }
+        html body.theme-light .bg-dark-500\/80 { background-color: rgba(100,116,139,0.45) !important; }
+        html body.theme-light .bg-dark-500\/90 { background-color: rgba(100,116,139,0.5) !important; }
+        html body.theme-light .bg-dark-400\/10 { background-color: rgba(148,163,184,0.1) !important; }
+        html body.theme-light .bg-dark-400\/20 { background-color: rgba(148,163,184,0.15) !important; }
+        html body.theme-light .bg-dark-400\/30 { background-color: rgba(148,163,184,0.2) !important; }
+        html body.theme-light .bg-dark-400\/40 { background-color: rgba(148,163,184,0.25) !important; }
+        html body.theme-light .bg-dark-400\/50 { background-color: rgba(148,163,184,0.3) !important; }
+        html body.theme-light .bg-dark-400\/60 { background-color: rgba(148,163,184,0.35) !important; }
+        html body.theme-light .bg-dark-400\/70 { background-color: rgba(148,163,184,0.4) !important; }
+        html body.theme-light .bg-dark-400\/80 { background-color: rgba(148,163,184,0.45) !important; }
+        html body.theme-light .bg-dark-400\/90 { background-color: rgba(148,163,184,0.5) !important; }
+        html body.theme-light .bg-dark-300\/10 { background-color: rgba(51,65,85,0.08) !important; }
+        html body.theme-light .bg-dark-300\/20 { background-color: rgba(51,65,85,0.12) !important; }
+        html body.theme-light .bg-dark-300\/30 { background-color: rgba(51,65,85,0.16) !important; }
+        html body.theme-light .bg-dark-300\/40 { background-color: rgba(51,65,85,0.2) !important; }
+        html body.theme-light .bg-dark-300\/50 { background-color: rgba(51,65,85,0.25) !important; }
+        html body.theme-light .bg-dark-300\/60 { background-color: rgba(51,65,85,0.3) !important; }
+        html body.theme-light .bg-dark-300\/70 { background-color: rgba(51,65,85,0.35) !important; }
+        html body.theme-light .bg-dark-300\/80 { background-color: rgba(51,65,85,0.4) !important; }
+        html body.theme-light .bg-dark-300\/90 { background-color: rgba(51,65,85,0.45) !important; }
+        html body.theme-light .bg-dark-200\/10 { background-color: rgba(226,232,240,0.2) !important; }
+        html body.theme-light .bg-dark-200\/20 { background-color: rgba(226,232,240,0.3) !important; }
+        html body.theme-light .bg-dark-200\/30 { background-color: rgba(226,232,240,0.4) !important; }
+        html body.theme-light .bg-dark-200\/40 { background-color: rgba(226,232,240,0.5) !important; }
+        html body.theme-light .bg-dark-200\/50 { background-color: rgba(226,232,240,0.6) !important; }
+        html body.theme-light .bg-dark-200\/60 { background-color: rgba(226,232,240,0.7) !important; }
+        html body.theme-light .bg-dark-200\/70 { background-color: rgba(226,232,240,0.8) !important; }
+        html body.theme-light .bg-dark-200\/80 { background-color: rgba(226,232,240,0.9) !important; }
+        html body.theme-light .bg-dark-200\/90 { background-color: rgba(226,232,240,0.95) !important; }
+        html body.theme-light .bg-dark-100\/10 { background-color: rgba(241,245,249,0.2) !important; }
+        html body.theme-light .bg-dark-100\/20 { background-color: rgba(241,245,249,0.3) !important; }
+        html body.theme-light .bg-dark-100\/30 { background-color: rgba(241,245,249,0.4) !important; }
+        html body.theme-light .bg-dark-100\/40 { background-color: rgba(241,245,249,0.5) !important; }
+        html body.theme-light .bg-dark-100\/50 { background-color: rgba(241,245,249,0.6) !important; }
+        html body.theme-light .bg-dark-100\/60 { background-color: rgba(241,245,249,0.7) !important; }
+        html body.theme-light .bg-dark-100\/70 { background-color: rgba(241,245,249,0.8) !important; }
+        html body.theme-light .bg-dark-100\/80 { background-color: rgba(241,245,249,0.9) !important; }
+        html body.theme-light .bg-dark-100\/90 { background-color: rgba(241,245,249,0.95) !important; }
+        html body.theme-light .bg-dark-50\/10 { background-color: rgba(248,250,252,0.2) !important; }
+        html body.theme-light .bg-dark-50\/20 { background-color: rgba(248,250,252,0.3) !important; }
+        html body.theme-light .bg-dark-50\/30 { background-color: rgba(248,250,252,0.4) !important; }
+        html body.theme-light .bg-dark-50\/40 { background-color: rgba(248,250,252,0.5) !important; }
+        html body.theme-light .bg-dark-50\/50 { background-color: rgba(248,250,252,0.6) !important; }
+        html body.theme-light .bg-dark-50\/60 { background-color: rgba(248,250,252,0.7) !important; }
+        html body.theme-light .bg-dark-50\/70 { background-color: rgba(248,250,252,0.8) !important; }
+        html body.theme-light .bg-dark-50\/80 { background-color: rgba(248,250,252,0.9) !important; }
+        html body.theme-light .bg-dark-50\/90 { background-color: rgba(248,250,252,0.95) !important; }
+        /* Transição suave ao trocar tema */
+        body, body * {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        /* =====================================================
+           CORES PRIMÁRIAS DINÂMICAS (data-accent)
+           ===================================================== */
+        /* Azul */
+        body[data-accent="blue"] .bg-primary-50 { background-color: #eff6ff !important; }
+        body[data-accent="blue"] .bg-primary-100 { background-color: #dbeafe !important; }
+        body[data-accent="blue"] .bg-primary-200 { background-color: #bfdbfe !important; }
+        body[data-accent="blue"] .bg-primary-300 { background-color: #93c5fd !important; }
+        body[data-accent="blue"] .bg-primary-400 { background-color: #60a5fa !important; }
+        body[data-accent="blue"] .bg-primary-500 { background-color: #3b82f6 !important; }
+        body[data-accent="blue"] .bg-primary-600 { background-color: #2563eb !important; }
+        body[data-accent="blue"] .bg-primary-700 { background-color: #1d4ed8 !important; }
+        body[data-accent="blue"] .bg-primary-800 { background-color: #1e40af !important; }
+        body[data-accent="blue"] .bg-primary-900 { background-color: #1e3a8a !important; }
+        body[data-accent="blue"] .bg-primary-950 { background-color: #172554 !important; }
+        body[data-accent="blue"] .text-primary-50 { color: #eff6ff !important; }
+        body[data-accent="blue"] .text-primary-100 { color: #dbeafe !important; }
+        body[data-accent="blue"] .text-primary-200 { color: #bfdbfe !important; }
+        body[data-accent="blue"] .text-primary-300 { color: #93c5fd !important; }
+        body[data-accent="blue"] .text-primary-400 { color: #60a5fa !important; }
+        body[data-accent="blue"] .text-primary-500 { color: #3b82f6 !important; }
+        body[data-accent="blue"] .text-primary-600 { color: #2563eb !important; }
+        body[data-accent="blue"] .text-primary-700 { color: #1d4ed8 !important; }
+        body[data-accent="blue"] .text-primary-800 { color: #1e40af !important; }
+        body[data-accent="blue"] .text-primary-900 { color: #1e3a8a !important; }
+        body[data-accent="blue"] .text-primary-950 { color: #172554 !important; }
+        body[data-accent="blue"] .border-primary-50 { border-color: #eff6ff !important; }
+        body[data-accent="blue"] .border-primary-100 { border-color: #dbeafe !important; }
+        body[data-accent="blue"] .border-primary-200 { border-color: #bfdbfe !important; }
+        body[data-accent="blue"] .border-primary-300 { border-color: #93c5fd !important; }
+        body[data-accent="blue"] .border-primary-400 { border-color: #60a5fa !important; }
+        body[data-accent="blue"] .border-primary-500 { border-color: #3b82f6 !important; }
+        body[data-accent="blue"] .border-primary-600 { border-color: #2563eb !important; }
+        body[data-accent="blue"] .border-primary-700 { border-color: #1d4ed8 !important; }
+        body[data-accent="blue"] .border-primary-800 { border-color: #1e40af !important; }
+        body[data-accent="blue"] .border-primary-900 { border-color: #1e3a8a !important; }
+        body[data-accent="blue"] .border-primary-950 { border-color: #172554 !important; }
+        body[data-accent="blue"] .from-primary-400 { --tw-gradient-from: #60a5fa !important; }
+        body[data-accent="blue"] .from-primary-500 { --tw-gradient-from: #3b82f6 !important; }
+        body[data-accent="blue"] .from-primary-600 { --tw-gradient-from: #2563eb !important; }
+        body[data-accent="blue"] .from-primary-700 { --tw-gradient-from: #1d4ed8 !important; }
+        body[data-accent="blue"] .from-primary-900 { --tw-gradient-from: #1e3a8a !important; }
+        body[data-accent="blue"] .to-primary-600 { --tw-gradient-to: #2563eb !important; }
+        body[data-accent="blue"] .to-primary-700 { --tw-gradient-to: #1d4ed8 !important; }
+        body[data-accent="blue"] .to-primary-800 { --tw-gradient-to: #1e40af !important; }
+        body[data-accent="blue"] .via-primary-600 { --tw-gradient-stops: #2563eb !important; }
+        body[data-accent="blue"] .hover\:bg-primary-700:hover { background-color: #1d4ed8 !important; }
+        body[data-accent="blue"] .hover\:bg-primary-800:hover { background-color: #1e40af !important; }
+        body[data-accent="blue"] .hover\:text-primary-300:hover { color: #93c5fd !important; }
+        body[data-accent="blue"] .hover\:text-primary-400:hover { color: #60a5fa !important; }
+        body[data-accent="blue"] .focus\:border-primary-500:focus { border-color: #3b82f6 !important; }
+        body[data-accent="blue"] .focus\:ring-primary-500:focus { --tw-ring-color: #3b82f6 !important; }
+        body[data-accent="blue"] .shadow-primary-600\/25 { --tw-shadow-color: rgba(37,99,235,0.25) !important; }
+        body[data-accent="blue"] .shadow-primary-600\/20 { --tw-shadow-color: rgba(37,99,235,0.2) !important; }
+        body[data-accent="blue"] .bg-primary-600\/10 { background-color: rgba(37,99,235,0.1) !important; }
+        body[data-accent="blue"] .bg-primary-600\/20 { background-color: rgba(37,99,235,0.2) !important; }
+        body[data-accent="blue"] .bg-primary-500\/20 { background-color: rgba(59,130,246,0.2) !important; }
+        body[data-accent="blue"] .border-primary-500\/20 { border-color: rgba(59,130,246,0.2) !important; }
+        body[data-accent="blue"] .border-primary-500\/30 { border-color: rgba(59,130,246,0.3) !important; }
+        body[data-accent="blue"] .border-primary-500\/50 { border-color: rgba(59,130,246,0.5) !important; }
+        body[data-accent="blue"] .hover\:border-primary-500\/50:hover { border-color: rgba(59,130,246,0.5) !important; }
+        body[data-accent="blue"] .has-\[\:checked\]\:border-primary-500:has(:checked) { border-color: #3b82f6 !important; }
+        body[data-accent="blue"] .has-\[\:checked\]\:bg-primary-600\/10:has(:checked) { background-color: rgba(37,99,235,0.1) !important; }
+        body[data-accent="blue"] .text-primary-600 { color: #2563eb !important; }
+        body[data-accent="blue"] .ring-primary-500 { --tw-ring-color: #3b82f6 !important; }
+        body[data-accent="blue"] .accent-primary-600 { accent-color: #2563eb !important; }
+        
+        /* Esmeralda */
+        body[data-accent="emerald"] .bg-primary-50 { background-color: #ecfdf5 !important; }
+        body[data-accent="emerald"] .bg-primary-100 { background-color: #d1fae5 !important; }
+        body[data-accent="emerald"] .bg-primary-200 { background-color: #a7f3d0 !important; }
+        body[data-accent="emerald"] .bg-primary-300 { background-color: #6ee7b7 !important; }
+        body[data-accent="emerald"] .bg-primary-400 { background-color: #34d399 !important; }
+        body[data-accent="emerald"] .bg-primary-500 { background-color: #10b981 !important; }
+        body[data-accent="emerald"] .bg-primary-600 { background-color: #059669 !important; }
+        body[data-accent="emerald"] .bg-primary-700 { background-color: #047857 !important; }
+        body[data-accent="emerald"] .bg-primary-800 { background-color: #065f46 !important; }
+        body[data-accent="emerald"] .bg-primary-900 { background-color: #064e3b !important; }
+        body[data-accent="emerald"] .bg-primary-950 { background-color: #022c22 !important; }
+        body[data-accent="emerald"] .text-primary-50 { color: #ecfdf5 !important; }
+        body[data-accent="emerald"] .text-primary-100 { color: #d1fae5 !important; }
+        body[data-accent="emerald"] .text-primary-200 { color: #a7f3d0 !important; }
+        body[data-accent="emerald"] .text-primary-300 { color: #6ee7b7 !important; }
+        body[data-accent="emerald"] .text-primary-400 { color: #34d399 !important; }
+        body[data-accent="emerald"] .text-primary-500 { color: #10b981 !important; }
+        body[data-accent="emerald"] .text-primary-600 { color: #059669 !important; }
+        body[data-accent="emerald"] .text-primary-700 { color: #047857 !important; }
+        body[data-accent="emerald"] .text-primary-800 { color: #065f46 !important; }
+        body[data-accent="emerald"] .text-primary-900 { color: #064e3b !important; }
+        body[data-accent="emerald"] .text-primary-950 { color: #022c22 !important; }
+        body[data-accent="emerald"] .border-primary-50 { border-color: #ecfdf5 !important; }
+        body[data-accent="emerald"] .border-primary-100 { border-color: #d1fae5 !important; }
+        body[data-accent="emerald"] .border-primary-200 { border-color: #a7f3d0 !important; }
+        body[data-accent="emerald"] .border-primary-300 { border-color: #6ee7b7 !important; }
+        body[data-accent="emerald"] .border-primary-400 { border-color: #34d399 !important; }
+        body[data-accent="emerald"] .border-primary-500 { border-color: #10b981 !important; }
+        body[data-accent="emerald"] .border-primary-600 { border-color: #059669 !important; }
+        body[data-accent="emerald"] .border-primary-700 { border-color: #047857 !important; }
+        body[data-accent="emerald"] .border-primary-800 { border-color: #065f46 !important; }
+        body[data-accent="emerald"] .border-primary-900 { border-color: #064e3b !important; }
+        body[data-accent="emerald"] .border-primary-950 { border-color: #022c22 !important; }
+        body[data-accent="emerald"] .from-primary-400 { --tw-gradient-from: #34d399 !important; }
+        body[data-accent="emerald"] .from-primary-500 { --tw-gradient-from: #10b981 !important; }
+        body[data-accent="emerald"] .from-primary-600 { --tw-gradient-from: #059669 !important; }
+        body[data-accent="emerald"] .from-primary-700 { --tw-gradient-from: #047857 !important; }
+        body[data-accent="emerald"] .from-primary-900 { --tw-gradient-from: #064e3b !important; }
+        body[data-accent="emerald"] .to-primary-600 { --tw-gradient-to: #059669 !important; }
+        body[data-accent="emerald"] .to-primary-700 { --tw-gradient-to: #047857 !important; }
+        body[data-accent="emerald"] .to-primary-800 { --tw-gradient-to: #065f46 !important; }
+        body[data-accent="emerald"] .via-primary-600 { --tw-gradient-stops: #059669 !important; }
+        body[data-accent="emerald"] .hover\:bg-primary-700:hover { background-color: #047857 !important; }
+        body[data-accent="emerald"] .hover\:bg-primary-800:hover { background-color: #065f46 !important; }
+        body[data-accent="emerald"] .hover\:text-primary-300:hover { color: #6ee7b7 !important; }
+        body[data-accent="emerald"] .hover\:text-primary-400:hover { color: #34d399 !important; }
+        body[data-accent="emerald"] .focus\:border-primary-500:focus { border-color: #10b981 !important; }
+        body[data-accent="emerald"] .focus\:ring-primary-500:focus { --tw-ring-color: #10b981 !important; }
+        body[data-accent="emerald"] .shadow-primary-600\/25 { --tw-shadow-color: rgba(5,150,105,0.25) !important; }
+        body[data-accent="emerald"] .shadow-primary-600\/20 { --tw-shadow-color: rgba(5,150,105,0.2) !important; }
+        body[data-accent="emerald"] .bg-primary-600\/10 { background-color: rgba(5,150,105,0.1) !important; }
+        body[data-accent="emerald"] .bg-primary-600\/20 { background-color: rgba(5,150,105,0.2) !important; }
+        body[data-accent="emerald"] .bg-primary-500\/20 { background-color: rgba(16,185,129,0.2) !important; }
+        body[data-accent="emerald"] .border-primary-500\/20 { border-color: rgba(16,185,129,0.2) !important; }
+        body[data-accent="emerald"] .border-primary-500\/30 { border-color: rgba(16,185,129,0.3) !important; }
+        body[data-accent="emerald"] .border-primary-500\/50 { border-color: rgba(16,185,129,0.5) !important; }
+        body[data-accent="emerald"] .hover\:border-primary-500\/50:hover { border-color: rgba(16,185,129,0.5) !important; }
+        body[data-accent="emerald"] .has-\[\:checked\]\:border-primary-500:has(:checked) { border-color: #10b981 !important; }
+        body[data-accent="emerald"] .has-\[\:checked\]\:bg-primary-600\/10:has(:checked) { background-color: rgba(5,150,105,0.1) !important; }
+        body[data-accent="emerald"] .ring-primary-500 { --tw-ring-color: #10b981 !important; }
+        body[data-accent="emerald"] .accent-primary-600 { accent-color: #059669 !important; }
+        
+        /* Âmbar */
+        body[data-accent="amber"] .bg-primary-50 { background-color: #fffbeb !important; }
+        body[data-accent="amber"] .bg-primary-100 { background-color: #fef3c7 !important; }
+        body[data-accent="amber"] .bg-primary-200 { background-color: #fde68a !important; }
+        body[data-accent="amber"] .bg-primary-300 { background-color: #fcd34d !important; }
+        body[data-accent="amber"] .bg-primary-400 { background-color: #fbbf24 !important; }
+        body[data-accent="amber"] .bg-primary-500 { background-color: #f59e0b !important; }
+        body[data-accent="amber"] .bg-primary-600 { background-color: #d97706 !important; }
+        body[data-accent="amber"] .bg-primary-700 { background-color: #b45309 !important; }
+        body[data-accent="amber"] .bg-primary-800 { background-color: #92400e !important; }
+        body[data-accent="amber"] .bg-primary-900 { background-color: #78350f !important; }
+        body[data-accent="amber"] .bg-primary-950 { background-color: #451a03 !important; }
+        body[data-accent="amber"] .text-primary-50 { color: #fffbeb !important; }
+        body[data-accent="amber"] .text-primary-100 { color: #fef3c7 !important; }
+        body[data-accent="amber"] .text-primary-200 { color: #fde68a !important; }
+        body[data-accent="amber"] .text-primary-300 { color: #fcd34d !important; }
+        body[data-accent="amber"] .text-primary-400 { color: #fbbf24 !important; }
+        body[data-accent="amber"] .text-primary-500 { color: #f59e0b !important; }
+        body[data-accent="amber"] .text-primary-600 { color: #d97706 !important; }
+        body[data-accent="amber"] .text-primary-700 { color: #b45309 !important; }
+        body[data-accent="amber"] .text-primary-800 { color: #92400e !important; }
+        body[data-accent="amber"] .text-primary-900 { color: #78350f !important; }
+        body[data-accent="amber"] .text-primary-950 { color: #451a03 !important; }
+        body[data-accent="amber"] .border-primary-50 { border-color: #fffbeb !important; }
+        body[data-accent="amber"] .border-primary-100 { border-color: #fef3c7 !important; }
+        body[data-accent="amber"] .border-primary-200 { border-color: #fde68a !important; }
+        body[data-accent="amber"] .border-primary-300 { border-color: #fcd34d !important; }
+        body[data-accent="amber"] .border-primary-400 { border-color: #fbbf24 !important; }
+        body[data-accent="amber"] .border-primary-500 { border-color: #f59e0b !important; }
+        body[data-accent="amber"] .border-primary-600 { border-color: #d97706 !important; }
+        body[data-accent="amber"] .border-primary-700 { border-color: #b45309 !important; }
+        body[data-accent="amber"] .border-primary-800 { border-color: #92400e !important; }
+        body[data-accent="amber"] .border-primary-900 { border-color: #78350f !important; }
+        body[data-accent="amber"] .border-primary-950 { border-color: #451a03 !important; }
+        body[data-accent="amber"] .from-primary-400 { --tw-gradient-from: #fbbf24 !important; }
+        body[data-accent="amber"] .from-primary-500 { --tw-gradient-from: #f59e0b !important; }
+        body[data-accent="amber"] .from-primary-600 { --tw-gradient-from: #d97706 !important; }
+        body[data-accent="amber"] .from-primary-700 { --tw-gradient-from: #b45309 !important; }
+        body[data-accent="amber"] .from-primary-900 { --tw-gradient-from: #78350f !important; }
+        body[data-accent="amber"] .to-primary-600 { --tw-gradient-to: #d97706 !important; }
+        body[data-accent="amber"] .to-primary-700 { --tw-gradient-to: #b45309 !important; }
+        body[data-accent="amber"] .to-primary-800 { --tw-gradient-to: #92400e !important; }
+        body[data-accent="amber"] .via-primary-600 { --tw-gradient-stops: #d97706 !important; }
+        body[data-accent="amber"] .hover\:bg-primary-700:hover { background-color: #b45309 !important; }
+        body[data-accent="amber"] .hover\:bg-primary-800:hover { background-color: #92400e !important; }
+        body[data-accent="amber"] .hover\:text-primary-300:hover { color: #fcd34d !important; }
+        body[data-accent="amber"] .hover\:text-primary-400:hover { color: #fbbf24 !important; }
+        body[data-accent="amber"] .focus\:border-primary-500:focus { border-color: #f59e0b !important; }
+        body[data-accent="amber"] .focus\:ring-primary-500:focus { --tw-ring-color: #f59e0b !important; }
+        body[data-accent="amber"] .shadow-primary-600\/25 { --tw-shadow-color: rgba(217,119,6,0.25) !important; }
+        body[data-accent="amber"] .shadow-primary-600\/20 { --tw-shadow-color: rgba(217,119,6,0.2) !important; }
+        body[data-accent="amber"] .bg-primary-600\/10 { background-color: rgba(217,119,6,0.1) !important; }
+        body[data-accent="amber"] .bg-primary-600\/20 { background-color: rgba(217,119,6,0.2) !important; }
+        body[data-accent="amber"] .bg-primary-500\/20 { background-color: rgba(245,158,11,0.2) !important; }
+        body[data-accent="amber"] .border-primary-500\/20 { border-color: rgba(245,158,11,0.2) !important; }
+        body[data-accent="amber"] .border-primary-500\/30 { border-color: rgba(245,158,11,0.3) !important; }
+        body[data-accent="amber"] .border-primary-500\/50 { border-color: rgba(245,158,11,0.5) !important; }
+        body[data-accent="amber"] .hover\:border-primary-500\/50:hover { border-color: rgba(245,158,11,0.5) !important; }
+        body[data-accent="amber"] .has-\[\:checked\]\:border-primary-500:has(:checked) { border-color: #f59e0b !important; }
+        body[data-accent="amber"] .has-\[\:checked\]\:bg-primary-600\/10:has(:checked) { background-color: rgba(217,119,6,0.1) !important; }
+        body[data-accent="amber"] .ring-primary-500 { --tw-ring-color: #f59e0b !important; }
+        body[data-accent="amber"] .accent-primary-600 { accent-color: #d97706 !important; }
+        
+        /* Rosa */
+        body[data-accent="rose"] .bg-primary-50 { background-color: #fff1f2 !important; }
+        body[data-accent="rose"] .bg-primary-100 { background-color: #ffe4e6 !important; }
+        body[data-accent="rose"] .bg-primary-200 { background-color: #fecdd3 !important; }
+        body[data-accent="rose"] .bg-primary-300 { background-color: #fda4af !important; }
+        body[data-accent="rose"] .bg-primary-400 { background-color: #fb7185 !important; }
+        body[data-accent="rose"] .bg-primary-500 { background-color: #f43f5e !important; }
+        body[data-accent="rose"] .bg-primary-600 { background-color: #e11d48 !important; }
+        body[data-accent="rose"] .bg-primary-700 { background-color: #be123c !important; }
+        body[data-accent="rose"] .bg-primary-800 { background-color: #9f1239 !important; }
+        body[data-accent="rose"] .bg-primary-900 { background-color: #881337 !important; }
+        body[data-accent="rose"] .bg-primary-950 { background-color: #4c0519 !important; }
+        body[data-accent="rose"] .text-primary-50 { color: #fff1f2 !important; }
+        body[data-accent="rose"] .text-primary-100 { color: #ffe4e6 !important; }
+        body[data-accent="rose"] .text-primary-200 { color: #fecdd3 !important; }
+        body[data-accent="rose"] .text-primary-300 { color: #fda4af !important; }
+        body[data-accent="rose"] .text-primary-400 { color: #fb7185 !important; }
+        body[data-accent="rose"] .text-primary-500 { color: #f43f5e !important; }
+        body[data-accent="rose"] .text-primary-600 { color: #e11d48 !important; }
+        body[data-accent="rose"] .text-primary-700 { color: #be123c !important; }
+        body[data-accent="rose"] .text-primary-800 { color: #9f1239 !important; }
+        body[data-accent="rose"] .text-primary-900 { color: #881337 !important; }
+        body[data-accent="rose"] .text-primary-950 { color: #4c0519 !important; }
+        body[data-accent="rose"] .border-primary-50 { border-color: #fff1f2 !important; }
+        body[data-accent="rose"] .border-primary-100 { border-color: #ffe4e6 !important; }
+        body[data-accent="rose"] .border-primary-200 { border-color: #fecdd3 !important; }
+        body[data-accent="rose"] .border-primary-300 { border-color: #fda4af !important; }
+        body[data-accent="rose"] .border-primary-400 { border-color: #fb7185 !important; }
+        body[data-accent="rose"] .border-primary-500 { border-color: #f43f5e !important; }
+        body[data-accent="rose"] .border-primary-600 { border-color: #e11d48 !important; }
+        body[data-accent="rose"] .border-primary-700 { border-color: #be123c !important; }
+        body[data-accent="rose"] .border-primary-800 { border-color: #9f1239 !important; }
+        body[data-accent="rose"] .border-primary-900 { border-color: #881337 !important; }
+        body[data-accent="rose"] .border-primary-950 { border-color: #4c0519 !important; }
+        body[data-accent="rose"] .from-primary-400 { --tw-gradient-from: #fb7185 !important; }
+        body[data-accent="rose"] .from-primary-500 { --tw-gradient-from: #f43f5e !important; }
+        body[data-accent="rose"] .from-primary-600 { --tw-gradient-from: #e11d48 !important; }
+        body[data-accent="rose"] .from-primary-700 { --tw-gradient-from: #be123c !important; }
+        body[data-accent="rose"] .from-primary-900 { --tw-gradient-from: #881337 !important; }
+        body[data-accent="rose"] .to-primary-600 { --tw-gradient-to: #e11d48 !important; }
+        body[data-accent="rose"] .to-primary-700 { --tw-gradient-to: #be123c !important; }
+        body[data-accent="rose"] .to-primary-800 { --tw-gradient-to: #9f1239 !important; }
+        body[data-accent="rose"] .via-primary-600 { --tw-gradient-stops: #e11d48 !important; }
+        body[data-accent="rose"] .hover\:bg-primary-700:hover { background-color: #be123c !important; }
+        body[data-accent="rose"] .hover\:bg-primary-800:hover { background-color: #9f1239 !important; }
+        body[data-accent="rose"] .hover\:text-primary-300:hover { color: #fda4af !important; }
+        body[data-accent="rose"] .hover\:text-primary-400:hover { color: #fb7185 !important; }
+        body[data-accent="rose"] .focus\:border-primary-500:focus { border-color: #f43f5e !important; }
+        body[data-accent="rose"] .focus\:ring-primary-500:focus { --tw-ring-color: #f43f5e !important; }
+        body[data-accent="rose"] .shadow-primary-600\/25 { --tw-shadow-color: rgba(225,29,72,0.25) !important; }
+        body[data-accent="rose"] .shadow-primary-600\/20 { --tw-shadow-color: rgba(225,29,72,0.2) !important; }
+        body[data-accent="rose"] .bg-primary-600\/10 { background-color: rgba(225,29,72,0.1) !important; }
+        body[data-accent="rose"] .bg-primary-600\/20 { background-color: rgba(225,29,72,0.2) !important; }
+        body[data-accent="rose"] .bg-primary-500\/20 { background-color: rgba(244,63,94,0.2) !important; }
+        body[data-accent="rose"] .border-primary-500\/20 { border-color: rgba(244,63,94,0.2) !important; }
+        body[data-accent="rose"] .border-primary-500\/30 { border-color: rgba(244,63,94,0.3) !important; }
+        body[data-accent="rose"] .border-primary-500\/50 { border-color: rgba(244,63,94,0.5) !important; }
+        body[data-accent="rose"] .hover\:border-primary-500\/50:hover { border-color: rgba(244,63,94,0.5) !important; }
+        body[data-accent="rose"] .has-\[\:checked\]\:border-primary-500:has(:checked) { border-color: #f43f5e !important; }
+        body[data-accent="rose"] .has-\[\:checked\]\:bg-primary-600\/10:has(:checked) { background-color: rgba(225,29,72,0.1) !important; }
+        body[data-accent="rose"] .ring-primary-500 { --tw-ring-color: #f43f5e !important; }
+        body[data-accent="rose"] .accent-primary-600 { accent-color: #e11d48 !important; }
+        
+        /* Violeta */
+        body[data-accent="violet"] .bg-primary-50 { background-color: #f5f3ff !important; }
+        body[data-accent="violet"] .bg-primary-100 { background-color: #ede9fe !important; }
+        body[data-accent="violet"] .bg-primary-200 { background-color: #ddd6fe !important; }
+        body[data-accent="violet"] .bg-primary-300 { background-color: #c4b5fd !important; }
+        body[data-accent="violet"] .bg-primary-400 { background-color: #a78bfa !important; }
+        body[data-accent="violet"] .bg-primary-500 { background-color: #8b5cf6 !important; }
+        body[data-accent="violet"] .bg-primary-600 { background-color: #7c3aed !important; }
+        body[data-accent="violet"] .bg-primary-700 { background-color: #6d28d9 !important; }
+        body[data-accent="violet"] .bg-primary-800 { background-color: #5b21b6 !important; }
+        body[data-accent="violet"] .bg-primary-900 { background-color: #4c1d95 !important; }
+        body[data-accent="violet"] .bg-primary-950 { background-color: #2e1065 !important; }
+        body[data-accent="violet"] .text-primary-50 { color: #f5f3ff !important; }
+        body[data-accent="violet"] .text-primary-100 { color: #ede9fe !important; }
+        body[data-accent="violet"] .text-primary-200 { color: #ddd6fe !important; }
+        body[data-accent="violet"] .text-primary-300 { color: #c4b5fd !important; }
+        body[data-accent="violet"] .text-primary-400 { color: #a78bfa !important; }
+        body[data-accent="violet"] .text-primary-500 { color: #8b5cf6 !important; }
+        body[data-accent="violet"] .text-primary-600 { color: #7c3aed !important; }
+        body[data-accent="violet"] .text-primary-700 { color: #6d28d9 !important; }
+        body[data-accent="violet"] .text-primary-800 { color: #5b21b6 !important; }
+        body[data-accent="violet"] .text-primary-900 { color: #4c1d95 !important; }
+        body[data-accent="violet"] .text-primary-950 { color: #2e1065 !important; }
+        body[data-accent="violet"] .border-primary-50 { border-color: #f5f3ff !important; }
+        body[data-accent="violet"] .border-primary-100 { border-color: #ede9fe !important; }
+        body[data-accent="violet"] .border-primary-200 { border-color: #ddd6fe !important; }
+        body[data-accent="violet"] .border-primary-300 { border-color: #c4b5fd !important; }
+        body[data-accent="violet"] .border-primary-400 { border-color: #a78bfa !important; }
+        body[data-accent="violet"] .border-primary-500 { border-color: #8b5cf6 !important; }
+        body[data-accent="violet"] .border-primary-600 { border-color: #7c3aed !important; }
+        body[data-accent="violet"] .border-primary-700 { border-color: #6d28d9 !important; }
+        body[data-accent="violet"] .border-primary-800 { border-color: #5b21b6 !important; }
+        body[data-accent="violet"] .border-primary-900 { border-color: #4c1d95 !important; }
+        body[data-accent="violet"] .border-primary-950 { border-color: #2e1065 !important; }
+        body[data-accent="violet"] .from-primary-400 { --tw-gradient-from: #a78bfa !important; }
+        body[data-accent="violet"] .from-primary-500 { --tw-gradient-from: #8b5cf6 !important; }
+        body[data-accent="violet"] .from-primary-600 { --tw-gradient-from: #7c3aed !important; }
+        body[data-accent="violet"] .from-primary-700 { --tw-gradient-from: #6d28d9 !important; }
+        body[data-accent="violet"] .from-primary-900 { --tw-gradient-from: #4c1d95 !important; }
+        body[data-accent="violet"] .to-primary-600 { --tw-gradient-to: #7c3aed !important; }
+        body[data-accent="violet"] .to-primary-700 { --tw-gradient-to: #6d28d9 !important; }
+        body[data-accent="violet"] .to-primary-800 { --tw-gradient-to: #5b21b6 !important; }
+        body[data-accent="violet"] .via-primary-600 { --tw-gradient-stops: #7c3aed !important; }
+        body[data-accent="violet"] .hover\:bg-primary-700:hover { background-color: #6d28d9 !important; }
+        body[data-accent="violet"] .hover\:bg-primary-800:hover { background-color: #5b21b6 !important; }
+        body[data-accent="violet"] .hover\:text-primary-300:hover { color: #c4b5fd !important; }
+        body[data-accent="violet"] .hover\:text-primary-400:hover { color: #a78bfa !important; }
+        body[data-accent="violet"] .focus\:border-primary-500:focus { border-color: #8b5cf6 !important; }
+        body[data-accent="violet"] .focus\:ring-primary-500:focus { --tw-ring-color: #8b5cf6 !important; }
+        body[data-accent="violet"] .shadow-primary-600\/25 { --tw-shadow-color: rgba(124,58,237,0.25) !important; }
+        body[data-accent="violet"] .shadow-primary-600\/20 { --tw-shadow-color: rgba(124,58,237,0.2) !important; }
+        body[data-accent="violet"] .bg-primary-600\/10 { background-color: rgba(124,58,237,0.1) !important; }
+        body[data-accent="violet"] .bg-primary-600\/20 { background-color: rgba(124,58,237,0.2) !important; }
+        body[data-accent="violet"] .bg-primary-500\/20 { background-color: rgba(139,92,246,0.2) !important; }
+        body[data-accent="violet"] .border-primary-500\/20 { border-color: rgba(139,92,246,0.2) !important; }
+        body[data-accent="violet"] .border-primary-500\/30 { border-color: rgba(139,92,246,0.3) !important; }
+        body[data-accent="violet"] .border-primary-500\/50 { border-color: rgba(139,92,246,0.5) !important; }
+        body[data-accent="violet"] .hover\:border-primary-500\/50:hover { border-color: rgba(139,92,246,0.5) !important; }
+        body[data-accent="violet"] .has-\[\:checked\]\:border-primary-500:has(:checked) { border-color: #8b5cf6 !important; }
+        body[data-accent="violet"] .has-\[\:checked\]\:bg-primary-600\/10:has(:checked) { background-color: rgba(124,58,237,0.1) !important; }
+        body[data-accent="violet"] .ring-primary-500 { --tw-ring-color: #8b5cf6 !important; }
+        body[data-accent="violet"] .accent-primary-600 { accent-color: #7c3aed !important; }
+        
+        /* =====================================================
+           DASHBOARD MODERNO - Animações e efeitos
+           ===================================================== */
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px -12px rgb(0 0 0 / 0.4);
+        }
+        .stat-icon {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .stat-card:hover .stat-icon {
+            transform: scale(1.1) rotate(-5deg);
+        }
+        .stat-value {
+            transition: all 0.4s ease;
+        }
+        .stat-card:hover .stat-value {
+            transform: scale(1.05);
+        }
+        
+        /* Barra de progresso animada */
+        .progress-bar {
+            transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Gradiente animado para o hero */
+        .hero-gradient {
+            background: linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(99,102,241,0.05) 40%, transparent 100%);
+        }
+        
+        /* Animação de entrada escalonada */
+        .stagger-1 { animation: fadeInUp 0.5s ease-out both; animation-delay: 0.05s; }
+        .stagger-2 { animation: fadeInUp 0.5s ease-out both; animation-delay: 0.15s; }
+        .stagger-3 { animation: fadeInUp 0.5s ease-out both; animation-delay: 0.25s; }
+        .stagger-4 { animation: fadeInUp 0.5s ease-out both; animation-delay: 0.35s; }
+        .stagger-5 { animation: fadeInUp 0.5s ease-out both; animation-delay: 0.45s; }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Ponto pulsante para status */
+        .pulse-dot {
+            position: relative;
+        }
+        .pulse-dot::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: inherit;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(2.5); opacity: 0; }
+        }
+        
+        /* Card de ação rápida */
+        .quick-action {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .quick-action:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 24px -8px rgb(0 0 0 / 0.4);
+        }
+        .quick-action:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+        
+        /* Linha de gradiente decorativa */
+        .gradient-line {
+            background: linear-gradient(90deg, transparent, rgba(99,102,241,0.5), transparent);
+            height: 1px;
+        }
+    </style>
+</head>
+<body class="bg-dark-950 text-white min-h-screen">
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2"></div>
+    
+    <!-- App Container -->
+    <div id="app"></div>
+
+    <script>
+    // =====================================================
+    // SISTEMA DE FORMULÁRIOS - FORMFLOW
+    // Arquivo Único - HTML/CSS/JS com TailwindCSS
+    // =====================================================
+
+    // =====================================================
+    // MÓDULO: Armazenamento Local (Simula Banco de Dados)
+    // =====================================================
+    const DB = {
+        // Chaves do localStorage
+        KEYS: {
+            FORMULARIOS: 'formflow_formularios',
+            RESPOSTAS: 'formflow_respostas',
+            CONFIG: 'formflow_config'
+        },
+
+        // Inicializar dados padrão
+        init() {
+            if (!localStorage.getItem(this.KEYS.FORMULARIOS)) {
+                localStorage.setItem(this.KEYS.FORMULARIOS, JSON.stringify([]));
+            }
+            if (!localStorage.getItem(this.KEYS.RESPOSTAS)) {
+                localStorage.setItem(this.KEYS.RESPOSTAS, JSON.stringify([]));
+            }
+            if (!localStorage.getItem(this.KEYS.CONFIG)) {
+                localStorage.setItem(this.KEYS.CONFIG, JSON.stringify({
+                    adminPin: '1234',
+                    theme: 'dark'
+                }));
+            }
+        },
+
+        // Formulários
+        getFormularios() {
+            return JSON.parse(localStorage.getItem(this.KEYS.FORMULARIOS) || '[]');
+        },
+
+        saveFormulario(form) {
+            const forms = this.getFormularios();
+            form.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            form.createdAt = new Date().toISOString();
+            forms.push(form);
+            localStorage.setItem(this.KEYS.FORMULARIOS, JSON.stringify(forms));
+            return form;
+        },
+
+        getFormularioById(id) {
+            return this.getFormularios().find(f => f.id === id);
+        },
+
+        deleteFormulario(id) {
+            const forms = this.getFormularios().filter(f => f.id !== id);
+            localStorage.setItem(this.KEYS.FORMULARIOS, JSON.stringify(forms));
+        },
+
+        // Respostas
+        getRespostas() {
+            return JSON.parse(localStorage.getItem(this.KEYS.RESPOSTAS) || '[]');
+        },
+
+        saveResposta(resposta) {
+            const respostas = this.getRespostas();
+            resposta.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            resposta.receivedAt = new Date().toISOString();
+            resposta.status = 'pendente';
+            respostas.push(resposta);
+            localStorage.setItem(this.KEYS.RESPOSTAS, JSON.stringify(respostas));
+            return resposta;
+        },
+
+        updateRespostaStatus(id, status) {
+            const respostas = this.getRespostas();
+            const idx = respostas.findIndex(r => r.id === id);
+            if (idx !== -1) {
+                respostas[idx].status = status;
+                respostas[idx].updatedAt = new Date().toISOString();
+                localStorage.setItem(this.KEYS.RESPOSTAS, JSON.stringify(respostas));
+            }
+        },
+
+        deleteResposta(id) {
+            const respostas = this.getRespostas().filter(r => r.id !== id);
+            localStorage.setItem(this.KEYS.RESPOSTAS, JSON.stringify(respostas));
+        },
+
+        getRespostasByFormulario(formId) {
+            return this.getRespostas().filter(r => r.formularioId === formId);
+        },
+
+        // Config
+        getConfig() {
+            const defaults = {
+                adminPin: '1234',
+                theme: 'dark',
+                siteName: 'FormFlow',
+                siteDesc: 'Sistema de Formulários',
+                accentColor: 'indigo',
+                notifications: true,
+                compactMode: false,
+                logoType: 'icon',
+                logoPreset: 'file-text',
+                logoCustom: ''
+            };
+            return { ...defaults, ...(JSON.parse(localStorage.getItem(this.KEYS.CONFIG) || '{}')) };
+        },
+
+        updateConfig(patch) {
+            const config = this.getConfig();
+            const updated = { ...config, ...patch };
+            localStorage.setItem(this.KEYS.CONFIG, JSON.stringify(updated));
+            return updated;
+        },
+
+        // Gerar dados de exemplo
+        generateSampleData() {
+            const sampleForms = [
+                {
+                    id: 'sample1',
+                    titulo: 'Cadastro de Cliente',
+                    descricao: 'Formulário de cadastro para novos clientes',
+                    campos: [
+                        { id: 'c1', tipo: 'texto', label: 'Nome Completo', obrigatorio: true },
+                        { id: 'c2', tipo: 'email', label: 'E-mail', obrigatorio: true },
+                        { id: 'c3', tipo: 'tel', label: 'Telefone', obrigatorio: false },
+                        { id: 'c4', tipo: 'textarea', label: 'Observações', obrigatorio: false }
+                    ],
+                    createdAt: new Date(Date.now() - 86400000 * 7).toISOString()
+                },
+                {
+                    id: 'sample2',
+                    titulo: 'Pesquisa de Satisfação',
+                    descricao: 'Ajude-nos a melhorar nossos serviços',
+                    campos: [
+                        { id: 'c5', tipo: 'texto', label: 'Seu Nome', obrigatorio: false },
+                        { id: 'c6', tipo: 'select', label: 'Nota', opcoes: ['1 - Péssimo', '2 - Ruim', '3 - Regular', '4 - Bom', '5 - Excelente'], obrigatorio: true },
+                        { id: 'c7', tipo: 'textarea', label: 'O que podemos melhorar?', obrigatorio: false },
+                        { id: 'c8', tipo: 'radio', label: 'Recomendaria nosso serviço?', opcoes: ['Sim', 'Não', 'Talvez'], obrigatorio: true }
+                    ],
+                    createdAt: new Date(Date.now() - 86400000 * 3).toISOString()
+                },
+                {
+                    id: 'sample3',
+                    titulo: 'Agendamento de Consulta',
+                    descricao: 'Preencha para agendar sua consulta',
+                    campos: [
+                        { id: 'c9', tipo: 'texto', label: 'Nome do Paciente', obrigatorio: true },
+                        { id: 'c10', tipo: 'date', label: 'Data Preferida', obrigatorio: true },
+                        { id: 'c11', tipo: 'select', label: 'Tipo de Consulta', opcoes: ['Primeira Consulta', 'Retorno', 'Emergência', 'Check-up'], obrigatorio: true },
+                        { id: 'c12', tipo: 'textarea', label: 'Descreva seus sintomas', obrigatorio: false }
+                    ],
+                    createdAt: new Date(Date.now() - 86400000 * 1).toISOString()
+                }
+            ];
+
+            const sampleRespostas = [
+                {
+                    id: 'resp1',
+                    formularioId: 'sample1',
+                    formularioTitulo: 'Cadastro de Cliente',
+                    dados: { 'Nome Completo': 'Maria Silva', 'E-mail': 'maria@email.com', 'Telefone': '(11) 99999-1234', 'Observações': 'Cliente indicado por João' },
+                    status: 'lido',
+                    receivedAt: new Date(Date.now() - 86400000 * 6).toISOString()
+                },
+                {
+                    id: 'resp2',
+                    formularioId: 'sample1',
+                    formularioTitulo: 'Cadastro de Cliente',
+                    dados: { 'Nome Completo': 'Pedro Santos', 'E-mail': 'pedro.santos@email.com', 'Telefone': '(21) 98888-5678', 'Observações': '' },
+                    status: 'pendente',
+                    receivedAt: new Date(Date.now() - 86400000 * 2).toISOString()
+                },
+                {
+                    id: 'resp3',
+                    formularioId: 'sample2',
+                    formularioTitulo: 'Pesquisa de Satisfação',
+                    dados: { 'Seu Nome': 'Ana Costa', 'Nota': '5 - Excelente', 'O que podemos melhorar?': 'Tudo perfeito!', 'Recomendaria nosso serviço?': 'Sim' },
+                    status: 'lido',
+                    receivedAt: new Date(Date.now() - 86400000 * 1).toISOString()
+                },
+                {
+                    id: 'resp4',
+                    formularioId: 'sample2',
+                    formularioTitulo: 'Pesquisa de Satisfação',
+                    dados: { 'Seu Nome': 'Carlos Oliveira', 'Nota': '3 - Regular', 'O que podemos melhorar?': 'Velocidade do atendimento poderia ser melhor', 'Recomendaria nosso serviço?': 'Talvez' },
+                    status: 'arquivado',
+                    receivedAt: new Date(Date.now() - 86400000 * 5).toISOString()
+                },
+                {
+                    id: 'resp5',
+                    formularioId: 'sample3',
+                    formularioTitulo: 'Agendamento de Consulta',
+                    dados: { 'Nome do Paciente': 'Lucia Fernandes', 'Data Preferida': '2026-09-10', 'Tipo de Consulta': 'Primeira Consulta', 'Descreva seus sintomas': 'Dor de cabeça frequente' },
+                    status: 'pendente',
+                    receivedAt: new Date(Date.now() - 3600000 * 5).toISOString()
+                }
+            ];
+
+            if (this.getFormularios().length === 0) {
+                localStorage.setItem(this.KEYS.FORMULARIOS, JSON.stringify(sampleForms));
+            }
+            if (this.getRespostas().length === 0) {
+                localStorage.setItem(this.KEYS.RESPOSTAS, JSON.stringify(sampleRespostas));
+            }
+        }
+    };
+
+    // =====================================================
+    // MÓDULO: Utilitários
+    // =====================================================
+    const Utils = {
+        formatDate(isoString) {
+            const d = new Date(isoString);
+            return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        },
+
+        formatDateTime(isoString) {
+            const d = new Date(isoString);
+            return d.toLocaleDateString('pt-BR', { 
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        },
+
+        timeAgo(isoString) {
+            const seconds = Math.floor((new Date() - new Date(isoString)) / 1000);
+            if (seconds < 60) return 'Agora mesmo';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)} min atrás`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h atrás`;
+            if (seconds < 604800) return `${Math.floor(seconds / 86400)} dias atrás`;
+            return this.formatDate(isoString);
+        },
+
+        escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        },
+
+        // Gerar link do formulário (hash-based)
+        getFormLink(formId) {
+            const base = window.location.origin + window.location.pathname;
+            return `${base}#/?form=${formId}`;
+        },
+
+        // Copiar para área de transferência
+        async copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                return true;
+            } catch {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                return true;
+            }
+        }
+    };
+
+    // =====================================================
+    // MÓDULO: Toast Notifications
+    // =====================================================
+    const Toast = {
+        show(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const colors = {
+                success: 'bg-emerald-600',
+                error: 'bg-red-600',
+                info: 'bg-primary-600',
+                warning: 'bg-amber-600'
+            };
+            const icons = {
+                success: 'check-circle',
+                error: 'x-circle',
+                info: 'info',
+                warning: 'alert-triangle'
+            };
+            
+            const toast = document.createElement('div');
+            toast.className = `toast ${colors[type]} px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 min-w-[280px] max-w-sm`;
+            toast.innerHTML = `
+                <i data-lucide="${icons[type]}" class="w-5 h-5 flex-shrink-0"></i>
+                <span class="text-sm font-medium">${message}</span>
+            `;
+            container.appendChild(toast);
+            lucide.createIcons({ nodes: [toast] });
+            
+            setTimeout(() => toast.remove(), 3000);
+        }
+    };
+
+    // =====================================================
+    // MÓDULO: Router (SPA) - Hash-Based
+    // =====================================================
+    const Router = {
+        routes: {},
+        
+        register(path, handler) {
+            this.routes[path] = handler;
+        },
+
+        navigate(path) {
+            window.location.hash = path;
+        },
+
+        resolve() {
+            const hash = window.location.hash.slice(1) || '/';
+            const [pathPart, queryPart] = hash.split('?');
+            const path = pathPart || '/';
+            
+            // Parse query params from hash
+            const params = {};
+            if (queryPart) {
+                queryPart.split('&').forEach(pair => {
+                    const [k, v] = pair.split('=');
+                    params[decodeURIComponent(k)] = decodeURIComponent(v || '');
+                });
+            }
+            
+            // Verificar se é view de formulário público
+            if (params.form) {
+                this.routes['/form-view']?.(params.form);
+                return;
+            }
+            
+            // Rotas públicas (não exigem PIN)
+            const publicRoutes = ['/landing'];
+            if (publicRoutes.includes(path)) {
+                const handler = this.routes[path];
+                handler?.(params);
+                return;
+            }
+            
+            // Demais rotas exigem autenticação por PIN
+            if (!Auth.isAuthenticated()) {
+                renderPinLogin();
+                return;
+            }
+            
+            // Verificar rotas registradas
+            const handler = this.routes[path] || this.routes['/'];
+            handler?.(params);
+        },
+
+        init() {
+            window.addEventListener('hashchange', () => this.resolve());
+            if (!window.location.hash) {
+                window.location.hash = '/';
+            }
+            this.resolve();
+        }
+    };
+
+    // =====================================================
+    // MÓDULO: Autenticação (PIN)
+    // =====================================================
+    const Auth = {
+        SESSION_KEY: 'formflow_admin_session',
+        PIN_KEY: 'formflow_admin_pin',
+
+        // Verifica se há uma sessão ativa
+        isAuthenticated() {
+            return sessionStorage.getItem(this.SESSION_KEY) === 'true';
+        },
+
+        // Valida o PIN informado
+        login(pin) {
+            const config = DB.getConfig();
+            if (String(pin) === String(config.adminPin)) {
+                sessionStorage.setItem(this.SESSION_KEY, 'true');
+                return true;
+            }
+            return false;
+        },
+
+        // Encerra a sessão
+        logout() {
+            sessionStorage.removeItem(this.SESSION_KEY);
+        }
+    };
+
+    // =====================================================
+    // MÓDULO: Logo do Sistema
+    // =====================================================
+    // Logos pré-configurados (ícone + gradiente)
+    const LogoPresets = {
+        'file-text':  { icon: 'file-text',  gradient: 'from-primary-500 to-primary-700' },
+        'clipboard':  { icon: 'clipboard-list', gradient: 'from-emerald-500 to-teal-700' },
+        'form':       { icon: 'form-input', gradient: 'from-amber-500 to-orange-700' },
+        'layers':     { icon: 'layers',     gradient: 'from-rose-500 to-pink-700' },
+        'shield':     { icon: 'shield-check', gradient: 'from-violet-500 to-purple-700' },
+        'send':       { icon: 'send',       gradient: 'from-blue-500 to-indigo-700' },
+        'check':      { icon: 'check-circle', gradient: 'from-cyan-500 to-blue-700' },
+        'database':   { icon: 'database',   gradient: 'from-fuchsia-500 to-pink-700' }
+    };
+
+    // Renderiza o logo conforme a configuração
+    function renderLogo(size = 'md') {
+        const config = DB.getConfig();
+        const sizes = {
+            sm: { box: 'w-8 h-8 rounded-lg', icon: 'w-4 h-4' },
+            md: { box: 'w-10 h-10 rounded-xl', icon: 'w-5 h-5' },
+            lg: { box: 'w-12 h-12 rounded-xl', icon: 'w-6 h-6' }
+        };
+        const s = sizes[size] || sizes.md;
+
+        // Logo personalizado (imagem enviada pelo admin)
+        if (config.logoType === 'custom' && config.logoCustom) {
+            return `<img src="${config.logoCustom}" alt="Logo" class="${s.box} object-contain bg-dark-800 border border-dark-700 p-1 flex-shrink-0">`;
+        }
+
+        // Logo pré-configurado
+        if (config.logoType === 'preset') {
+            const preset = LogoPresets[config.logoPreset] || LogoPresets['file-text'];
+            return `<div class="${s.box} bg-gradient-to-br ${preset.gradient} flex items-center justify-center flex-shrink-0">
+                <i data-lucide="${preset.icon}" class="${s.icon} text-white"></i>
+            </div>`;
+        }
+
+        // Padrão: ícone com a cor primária
+        return `<div class="${s.box} bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="file-text" class="${s.icon} text-white"></i>
+        </div>`;
+    }
+
+    // =====================================================
+    // COMPONENTES: Sidebar do Admin
+    // =====================================================
+    const Sidebar = {
+        render(activePage) {
+            const respostas = DB.getRespostas();
+            const pendentes = respostas.filter(r => r.status === 'pendente').length;
+            const siteName = DB.getConfig().siteName || 'FormFlow';
+            
+            return `
+                <!-- Mobile Header -->
+                <div class="lg:hidden fixed top-0 left-0 right-0 z-40 bg-dark-900/95 backdrop-blur-sm border-b border-dark-700 px-4 py-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <button onclick="toggleSidebar()" class="p-2 hover:bg-dark-700 rounded-xl transition-colors">
+                                <i data-lucide="menu" class="w-5 h-5"></i>
+                            </button>
+                            ${renderLogo('sm')}
+                            <span class="text-lg font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">${Utils.escapeHtml(siteName)}</span>
+                        </div>
+                        <div class="relative">
+                            <i data-lucide="bell" class="w-5 h-5 text-dark-400"></i>
+                            ${pendentes > 0 ? `<span class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] flex items-center justify-center font-bold">${pendentes}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sidebar -->
+                <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-dark-900 border-r border-dark-700 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300">
+                    <div class="p-6">
+                        <div class="flex items-center gap-3 mb-10">
+                            ${renderLogo('md')}
+                            <span class="text-xl font-bold">${Utils.escapeHtml(siteName)}</span>
+                        </div>
+                        
+                        <nav class="space-y-2">
+                            <a href="#" onclick="Router.navigate('/admin'); return false;" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activePage === 'dashboard' ? 'bg-primary-600/20 text-primary-400' : 'hover:bg-dark-800 text-dark-300 hover:text-white'}">
+                                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                                <span class="font-medium">Dashboard</span>
+                            </a>
+                            <a href="#" onclick="Router.navigate('/admin/forms'); return false;" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activePage === 'forms' ? 'bg-primary-600/20 text-primary-400' : 'hover:bg-dark-800 text-dark-300 hover:text-white'}">
+                                <i data-lucide="file-plus" class="w-5 h-5"></i>
+                                <span class="font-medium">Formulários</span>
+                                <span class="ml-auto text-xs bg-dark-700 px-2 py-1 rounded-full">${DB.getFormularios().length}</span>
+                            </a>
+                            <a href="#" onclick="Router.navigate('/admin/received'); return false;" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activePage === 'received' ? 'bg-primary-600/20 text-primary-400' : 'hover:bg-dark-800 text-dark-300 hover:text-white'}">
+                                <i data-lucide="inbox" class="w-5 h-5"></i>
+                                <span class="font-medium">Recebidos</span>
+                                ${pendentes > 0 ? `<span class="ml-auto text-xs bg-red-500/20 text-red-400 px-2 py-1 rounded-full font-bold">${pendentes} novo${pendentes > 1 ? 's' : ''}</span>` : ''}
+                            </a>
+                            <a href="#" onclick="Router.navigate('/admin/history'); return false;" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activePage === 'history' ? 'bg-primary-600/20 text-primary-400' : 'hover:bg-dark-800 text-dark-300 hover:text-white'}">
+                                <i data-lucide="clock" class="w-5 h-5"></i>
+                                <span class="font-medium">Histórico</span>
+                            </a>
+                            <a href="#" onclick="Router.navigate('/admin/settings'); return false;" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activePage === 'settings' ? 'bg-primary-600/20 text-primary-400' : 'hover:bg-dark-800 text-dark-300 hover:text-white'}">
+                                <i data-lucide="settings" class="w-5 h-5"></i>
+                                <span class="font-medium">Configurações</span>
+                            </a>
+                        </nav>
+                        
+                        <!-- Acesso Rápido -->
+                        <div class="mt-6">
+                            <div class="flex items-center justify-between mb-3 px-2">
+                                <span class="text-[11px] font-semibold text-dark-500 uppercase tracking-wider">Acesso Rápido</span>
+                                <button onclick="showCreateFormModal(); closeSidebarMobile();" class="p-1 hover:bg-dark-700 rounded-lg transition-colors" title="Novo formulário">
+                                    <i data-lucide="plus" class="w-3.5 h-3.5 text-dark-500"></i>
+                                </button>
+                            </div>
+                            <div class="space-y-1 max-h-[240px] overflow-y-auto pr-1" id="sidebar-quick-forms">
+                                ${DB.getFormularios().map(f => {
+                                    const respCount = DB.getRespostasByFormulario(f.id).length;
+                                    return `
+                                    <div class="group rounded-lg hover:bg-dark-800 transition-all">
+                                        <button onclick="Router.navigate('/admin/received'); closeSidebarMobile();" class="w-full flex items-center gap-2.5 px-3 py-2 text-left" title="Ver respostas de '${Utils.escapeHtml(f.titulo)}'">
+                                            <div class="w-6 h-6 rounded-md bg-dark-800 group-hover:bg-primary-600/20 flex items-center justify-center flex-shrink-0 transition-colors">
+                                                <i data-lucide="file-text" class="w-3 h-3 group-hover:text-primary-400 transition-colors"></i>
+                                            </div>
+                                            <span class="text-sm truncate text-dark-400 group-hover:text-white transition-colors flex-1">${Utils.escapeHtml(f.titulo)}</span>
+                                            ${respCount > 0 ? `<span class="text-[10px] bg-primary-600/20 text-primary-400 px-1.5 py-0.5 rounded-full font-medium flex-shrink-0">${respCount}</span>` : ''}
+                                        </button>
+                                        <div class="flex items-center gap-1 px-3 pb-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onclick="event.stopPropagation(); copyFormLink('${f.id}')" class="p-1 hover:bg-dark-700 rounded text-dark-500 hover:text-primary-400 transition-colors" title="Copiar link">
+                                                <i data-lucide="link" class="w-3 h-3"></i>
+                                            </button>
+                                            <button onclick="event.stopPropagation(); previewForm('${f.id}'); closeSidebarMobile();" class="p-1 hover:bg-dark-700 rounded text-dark-500 hover:text-emerald-400 transition-colors" title="Abrir formulário">
+                                                <i data-lucide="external-link" class="w-3 h-3"></i>
+                                            </button>
+                                        </div>
+                                    </div>`;
+                                }).join('')}
+                                ${DB.getFormularios().length === 0 ? `
+                                    <p class="text-xs text-dark-600 px-3 py-2">Nenhum formulário criado</p>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-dark-700 space-y-1">
+                        <button onclick="Router.navigate('/')" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-dark-800 text-dark-400 hover:text-white transition-all w-full">
+                            <i data-lucide="home" class="w-5 h-5"></i>
+                            <span class="font-medium">Início</span>
+                        </button>
+                        <button onclick="logoutAdmin()" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 text-dark-400 hover:text-red-400 transition-all w-full">
+                            <i data-lucide="log-out" class="w-5 h-5"></i>
+                            <span class="font-medium">Sair</span>
+                        </button>
+                    </div>
+                </aside>
+                
+                <!-- Overlay mobile -->
+                <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
+            `;
+        }
+    };
+
+    // Toggle sidebar mobile
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        sidebar.classList.toggle('-translate-x-full');
+        overlay.classList.toggle('hidden');
+    }
+
+    // Fechar sidebar no mobile
+    function closeSidebarMobile() {
+        if (window.innerWidth < 1024) {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar) sidebar.classList.add('-translate-x-full');
+            if (overlay) overlay.classList.add('hidden');
+        }
+    }
+
+    // =====================================================
+    // PÁGINA: Login por PIN
+    // =====================================================
+    function renderPinLogin() {
+        const app = document.getElementById('app');
+        const siteName = DB.getConfig().siteName || 'FormFlow';
+        app.innerHTML = `
+            <div class="min-h-screen bg-dark-950 flex items-center justify-center p-4">
+                <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-primary-600/10 rounded-full blur-[120px] pointer-events-none"></div>
+                <div class="relative w-full max-w-md">
+                    <div class="bg-dark-900 border border-dark-700 rounded-3xl p-8 shadow-2xl fade-in">
+                        <div class="flex flex-col items-center text-center mb-8">
+                            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center mb-4 shadow-lg shadow-primary-600/20">
+                                <i data-lucide="lock" class="w-8 h-8 text-white"></i>
+                            </div>
+                            <h1 class="text-2xl font-bold text-white mb-1">Área Restrita</h1>
+                            <p class="text-sm text-dark-400">Digite o PIN de acesso para continuar</p>
+                        </div>
+                        
+                        <form onsubmit="handlePinLogin(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-dark-300 mb-2">PIN de acesso</label>
+                                <input id="pin-login-input" type="password" inputmode="numeric" maxlength="6" placeholder="••••" autofocus
+                                    class="w-full px-4 py-3 bg-dark-800 border border-dark-600 rounded-xl text-center text-2xl tracking-[0.5em] font-bold text-white focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all placeholder:text-dark-600">
+                            </div>
+                            <button type="submit" class="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-all flex items-center justify-center gap-2">
+                                <i data-lucide="unlock" class="w-5 h-5"></i>
+                                Entrar
+                            </button>
+                        </form>
+                        
+                        <p class="text-xs text-dark-500 text-center mt-6">Acesso protegido por PIN. Entre em contato com o administrador se precisar de ajuda.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        lucide.createIcons();
+        const input = document.getElementById('pin-login-input');
+        if (input) input.focus();
+    }
+
+    // Enviar PIN de login
+    function handlePinLogin(e) {
+        e.preventDefault();
+        const input = document.getElementById('pin-login-input');
+        const pin = input.value.trim();
+        if (!pin) {
+            Toast.show('Digite o PIN de acesso', 'warning');
+            return;
+        }
+        if (Auth.login(pin)) {
+            Toast.show('Acesso liberado', 'success');
+            Router.resolve();
+        } else {
+            Toast.show('PIN incorreto', 'error');
+            input.value = '';
+            input.focus();
+        }
+    }
+
+    // Sair da área administrativa
+    function logoutAdmin() {
+        Auth.logout();
+        Toast.show('Sessão encerrada', 'info');
+        Router.resolve();
+    }
+
+    // =====================================================
+    // PÁGINA: Landing / Início
+    // =====================================================
+    function renderLanding() {
+        const app = document.getElementById('app');
+        const siteName = DB.getConfig().siteName || 'FormFlow';
+        app.innerHTML = `
+            <div class="min-h-screen bg-dark-950">
+                <!-- Hero -->
+                <div class="relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-br from-primary-900/20 via-dark-950 to-dark-950"></div>
+                    <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary-600/10 rounded-full blur-[120px]"></div>
+                    
+                    <div class="relative max-w-6xl mx-auto px-4 py-20 md:py-32">
+                        <!-- Nav -->
+                        <nav class="flex items-center justify-between mb-20">
+                            <div class="flex items-center gap-3">
+                                ${renderLogo('md')}
+                                <span class="text-xl font-bold">${Utils.escapeHtml(siteName)}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="Router.navigate('/admin/settings')" class="w-10 h-10 bg-dark-800 hover:bg-dark-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center" title="Configurações">
+                                    <i data-lucide="settings" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="Router.navigate('/admin')" class="px-5 py-2.5 bg-dark-800 hover:bg-dark-700 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
+                                    <i data-lucide="shield" class="w-4 h-4"></i>
+                                    Área Admin
+                                </button>
+                            </div>
+                        </nav>
+                        
+                        <!-- Hero Content -->
+                        <div class="text-center max-w-3xl mx-auto">
+                            <div class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600/10 border border-primary-500/20 rounded-full text-primary-400 text-sm font-medium mb-8">
+                                <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                Sistema de Formulários Moderno
+                            </div>
+                            <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                                Envie e gerencie
+                                <span class="bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent"> formulários</span>
+                                com facilidade
+                            </h1>
+                            <p class="text-lg md:text-xl text-dark-400 mb-10 leading-relaxed">
+                                Crie formulários personalizados, compartilhe com seus clientes e receba respostas em tempo real. Tudo direto no navegador.
+                            </p>
+                            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                                <button onclick="Router.navigate('/admin')" class="px-8 py-4 bg-primary-600 hover:bg-primary-700 rounded-2xl font-semibold transition-all btn-press flex items-center justify-center gap-2 shadow-lg shadow-primary-600/25">
+                                    <i data-lucide="rocket" class="w-5 h-5"></i>
+                                    Começar Agora
+                                </button>
+                                <button onclick="Router.navigate('/admin/forms')" class="px-8 py-4 bg-dark-800 hover:bg-dark-700 border border-dark-600 rounded-2xl font-semibold transition-all btn-press flex items-center justify-center gap-2">
+                                    <i data-lucide="plus" class="w-5 h-5"></i>
+                                    Criar Formulário
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Features -->
+                        <div class="grid md:grid-cols-3 gap-6 mt-24">
+                            <div class="card-hover p-6 bg-dark-900/50 border border-dark-700/50 rounded-2xl">
+                                <div class="w-12 h-12 rounded-xl bg-primary-600/10 flex items-center justify-center mb-4">
+                                    <i data-lucide="smartphone" class="w-6 h-6 text-primary-400"></i>
+                                </div>
+                                <h3 class="text-lg font-semibold mb-2">Mobile First</h3>
+                                <p class="text-dark-400 text-sm leading-relaxed">Formulários otimizados para celular, com touch targets adequados e navegação intuitiva.</p>
+                            </div>
+                            <div class="card-hover p-6 bg-dark-900/50 border border-dark-700/50 rounded-2xl">
+                                <div class="w-12 h-12 rounded-xl bg-emerald-600/10 flex items-center justify-center mb-4">
+                                    <i data-lucide="download" class="w-6 h-6 text-emerald-400"></i>
+                                </div>
+                                <h3 class="text-lg font-semibold mb-2">Exportação Fácil</h3>
+                                <p class="text-dark-400 text-sm leading-relaxed">Baixe respostas em PDF ou Word com um clique. Formatação profissional garantida.</p>
+                            </div>
+                            <div class="card-hover p-6 bg-dark-900/50 border border-dark-700/50 rounded-2xl">
+                                <div class="w-12 h-12 rounded-xl bg-amber-600/10 flex items-center justify-center mb-4">
+                                    <i data-lucide="zap" class="w-6 h-6 text-amber-400"></i>
+                                </div>
+                                <h3 class="text-lg font-semibold mb-2">Tempo Real</h3>
+                                <p class="text-dark-400 text-sm leading-relaxed">Receba notificações instantâneas quando um cliente preencher seu formulário.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+
+    // =====================================================
+    // PÁGINA: Dashboard Admin
+    // =====================================================
+    function renderDashboard() {
+        const respostas = DB.getRespostas();
+        const formularios = DB.getFormularios();
+        const pendentes = respostas.filter(r => r.status === 'pendente').length;
+        const lidos = respostas.filter(r => r.status === 'lido').length;
+        const arquivados = respostas.filter(r => r.status === 'arquivado').length;
+        const totalRespostas = respostas.length;
+        
+        const recentes = [...respostas].sort((a, b) => new Date(b.receivedAt) - new Date(a.receivedAt)).slice(0, 5);
+        
+        // Data atual formatada
+        const hoje = new Date();
+        const dias = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+        const dataFormatada = `${dias[hoje.getDay()]}, ${hoje.getDate()} de ${meses[hoje.getMonth()]}`;
+        
+        // Taxa de resposta (lidos + arquivados / total)
+        const processados = lidos + arquivados;
+        const taxaProcessamento = totalRespostas > 0 ? Math.round((processados / totalRespostas) * 100) : 0;
+        
+        // Formulários mais recentes para acesso rápido
+        const formsRecentes = [...formularios].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 4);
+        
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="min-h-screen bg-dark-950">
+                ${Sidebar.render('dashboard')}
+                
+                <main class="lg:ml-64 pt-16 lg:pt-0">
+                    <div class="p-4 md:p-8 max-w-7xl mx-auto">
+                        <!-- Hero / Saudação -->
+                        <div class="relative overflow-hidden rounded-3xl hero-gradient border border-dark-700/50 p-6 md:p-8 mb-8 fade-in">
+                            <div class="absolute top-0 right-0 w-64 h-64 bg-primary-600/10 rounded-full blur-[80px]"></div>
+                            <div class="absolute bottom-0 left-1/3 w-40 h-40 bg-emerald-600/10 rounded-full blur-[60px]"></div>
+                            <div class="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                <div>
+                                    <p class="text-sm text-dark-400 mb-2 flex items-center gap-2">
+                                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                                        ${dataFormatada}
+                                    </p>
+                                    <h1 class="text-2xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-white to-dark-300 bg-clip-text text-transparent">
+                                        Bem-vindo de volta 👋
+                                    </h1>
+                                    <p class="text-dark-400">Aqui está o resumo do seu sistema de formulários.</p>
+                                </div>
+                                <div class="flex flex-wrap gap-3">
+                                    <button onclick="Router.navigate('/admin/forms')" class="quick-action px-5 py-3 bg-primary-600 hover:bg-primary-700 rounded-xl font-medium transition-all flex items-center gap-2 shadow-lg shadow-primary-600/25">
+                                        <i data-lucide="plus" class="w-4 h-4"></i>
+                                        Novo Formulário
+                                    </button>
+                                    <button onclick="Router.navigate('/admin/received')" class="quick-action px-5 py-3 bg-dark-800 hover:bg-dark-700 border border-dark-600 rounded-xl font-medium transition-all flex items-center gap-2">
+                                        <i data-lucide="inbox" class="w-4 h-4"></i>
+                                        Ver Recebidos
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Stats Cards -->
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            <div class="stat-card stagger-1 bg-dark-900 border border-dark-700/50 rounded-2xl p-5">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="stat-icon w-11 h-11 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg shadow-primary-600/20">
+                                        <i data-lucide="file-text" class="w-5 h-5 text-white"></i>
+                                    </div>
+                                    <span class="text-xs text-dark-500 font-medium">Total</span>
+                                </div>
+                                <div class="stat-value text-3xl font-bold mb-1">${formularios.length}</div>
+                                <p class="text-dark-400 text-sm">Formulários Criados</p>
+                                <div class="mt-3 h-1 bg-dark-700/50 rounded-full overflow-hidden">
+                                    <div class="progress-bar h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full" style="width: ${Math.min(100, formularios.length * 20)}%"></div>
+                                </div>
+                            </div>
+                            <div class="stat-card stagger-2 bg-dark-900 border border-dark-700/50 rounded-2xl p-5">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="stat-icon w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-600/20">
+                                        <i data-lucide="clock" class="w-5 h-5 text-white"></i>
+                                    </div>
+                                    <span class="text-xs text-dark-500 font-medium">Ação</span>
+                                </div>
+                                <div class="stat-value text-3xl font-bold text-amber-400 mb-1">${pendentes}</div>
+                                <p class="text-dark-400 text-sm">Pendentes</p>
+                                <div class="mt-3 h-1 bg-dark-700/50 rounded-full overflow-hidden">
+                                    <div class="progress-bar h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full" style="width: ${totalRespostas > 0 ? Math.round((pendentes / totalRespostas) * 100) : 0}%"></div>
+                                </div>
+                            </div>
+                            <div class="stat-card stagger-3 bg-dark-900 border border-dark-700/50 rounded-2xl p-5">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="stat-icon w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-600/20">
+                                        <i data-lucide="check-circle" class="w-5 h-5 text-white"></i>
+                                    </div>
+                                    <span class="text-xs text-dark-500 font-medium">Processado</span>
+                                </div>
+                                <div class="stat-value text-3xl font-bold text-emerald-400 mb-1">${lidos}</div>
+                                <p class="text-dark-400 text-sm">Lidos</p>
+                                <div class="mt-3 h-1 bg-dark-700/50 rounded-full overflow-hidden">
+                                    <div class="progress-bar h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full" style="width: ${totalRespostas > 0 ? Math.round((lidos / totalRespostas) * 100) : 0}%"></div>
+                                </div>
+                            </div>
+                            <div class="stat-card stagger-4 bg-dark-900 border border-dark-700/50 rounded-2xl p-5">
+                                <div class="flex items-center justify-between mb-4">
+                                    <div class="stat-icon w-11 h-11 rounded-xl bg-gradient-to-br from-slate-500 to-slate-700 flex items-center justify-center shadow-lg shadow-slate-600/20">
+                                        <i data-lucide="archive" class="w-5 h-5 text-white"></i>
+                                    </div>
+                                    <span class="text-xs text-dark-500 font-medium">Arquivado</span>
+                                </div>
+                                <div class="stat-value text-3xl font-bold text-dark-300 mb-1">${arquivados}</div>
+                                <p class="text-dark-400 text-sm">Arquivados</p>
+                                <div class="mt-3 h-1 bg-dark-700/50 rounded-full overflow-hidden">
+                                    <div class="progress-bar h-full bg-gradient-to-r from-slate-500 to-slate-600 rounded-full" style="width: ${totalRespostas > 0 ? Math.round((arquivados / totalRespostas) * 100) : 0}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Conteúdo principal: 2 colunas -->
+                        <div class="grid lg:grid-cols-3 gap-6">
+                            <!-- Atividade Recente (2/3) -->
+                            <div class="lg:col-span-2 bg-dark-900 border border-dark-700/50 rounded-2xl fade-in overflow-hidden">
+                                <div class="p-5 border-b border-dark-700/50 flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-9 h-9 rounded-xl bg-primary-600/10 flex items-center justify-center">
+                                            <i data-lucide="activity" class="w-4 h-4 text-primary-400"></i>
+                                        </div>
+                                        <h2 class="text-lg font-semibold">Atividade Recente</h2>
+                                    </div>
+                                    <button onclick="Router.navigate('/admin/received')" class="text-primary-400 hover:text-primary-300 text-sm font-medium transition-colors flex items-center gap-1">
+                                        Ver todos
+                                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                                    </button>
+                                </div>
+                                <div class="divide-y divide-dark-700/50">
+                                    ${recentes.length > 0 ? recentes.map((r, i) => `
+                                        <div class="p-4 hover:bg-dark-800/50 transition-colors cursor-pointer flex items-center gap-4 group" onclick="viewResposta('${r.id}')">
+                                            <div class="relative flex-shrink-0">
+                                                <div class="w-10 h-10 rounded-xl bg-gradient-to-br ${['from-primary-500 to-primary-700', 'from-emerald-500 to-teal-700', 'from-amber-500 to-orange-700', 'from-rose-500 to-pink-700', 'from-violet-500 to-purple-700'][i % 5]} flex items-center justify-center">
+                                                    <i data-lucide="user" class="w-5 h-5 text-white"></i>
+                                                </div>
+                                                ${r.status === 'pendente' ? `<span class="pulse-dot absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full"></span>` : ''}
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <p class="font-medium truncate group-hover:text-primary-400 transition-colors">${Utils.escapeHtml(r.formularioTitulo)}</p>
+                                                <p class="text-sm text-dark-400 flex items-center gap-1.5 mt-0.5">
+                                                    <i data-lucide="clock" class="w-3 h-3"></i>
+                                                    ${Utils.timeAgo(r.receivedAt)}
+                                                </p>
+                                            </div>
+                                            <span class="status-${r.status} px-3 py-1 rounded-full text-xs font-semibold text-white capitalize flex-shrink-0">${r.status}</span>
+                                        </div>
+                                    `).join('') : `
+                                        <div class="p-10 text-center text-dark-500">
+                                            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                                            <p>Nenhuma resposta recebida ainda</p>
+                                        </div>
+                                    `}
+                                </div>
+                            </div>
+                            
+                            <!-- Coluna lateral: Acesso rápido + Status -->
+                            <div class="space-y-6">
+                                <!-- Acesso Rápido -->
+                                <div class="bg-dark-900 border border-dark-700/50 rounded-2xl p-5 fade-in">
+                                    <div class="flex items-center gap-3 mb-4">
+                                        <div class="w-9 h-9 rounded-xl bg-emerald-600/10 flex items-center justify-center">
+                                            <i data-lucide="zap" class="w-4 h-4 text-emerald-400"></i>
+                                        </div>
+                                        <h2 class="text-lg font-semibold">Acesso Rápido</h2>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <button onclick="showCreateFormModal()" class="quick-action p-4 bg-dark-800 hover:bg-dark-700 rounded-xl text-center transition-all">
+                                            <div class="w-9 h-9 rounded-lg bg-primary-600/10 flex items-center justify-center mx-auto mb-2">
+                                                <i data-lucide="file-plus" class="w-4 h-4 text-primary-400"></i>
+                                            </div>
+                                            <span class="text-xs font-medium">Novo Formulário</span>
+                                        </button>
+                                        <button onclick="Router.navigate('/admin/received')" class="quick-action p-4 bg-dark-800 hover:bg-dark-700 rounded-xl text-center transition-all">
+                                            <div class="w-9 h-9 rounded-lg bg-amber-600/10 flex items-center justify-center mx-auto mb-2">
+                                                <i data-lucide="inbox" class="w-4 h-4 text-amber-400"></i>
+                                            </div>
+                                            <span class="text-xs font-medium">Recebidos</span>
+                                        </button>
+                                        <button onclick="Router.navigate('/admin/history')" class="quick-action p-4 bg-dark-800 hover:bg-dark-700 rounded-xl text-center transition-all">
+                                            <div class="w-9 h-9 rounded-lg bg-emerald-600/10 flex items-center justify-center mx-auto mb-2">
+                                                <i data-lucide="history" class="w-4 h-4 text-emerald-400"></i>
+                                            </div>
+                                            <span class="text-xs font-medium">Histórico</span>
+                                        </button>
+                                        <button onclick="Router.navigate('/admin/settings')" class="quick-action p-4 bg-dark-800 hover:bg-dark-700 rounded-xl text-center transition-all">
+                                            <div class="w-9 h-9 rounded-lg bg-violet-600/10 flex items-center justify-center mx-auto mb-2">
+                                                <i data-lucide="settings" class="w-4 h-4 text-violet-400"></i>
+                                            </div>
+                                            <span class="text-xs font-medium">Configurações</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Status de Processamento -->
+                                <div class="bg-dark-900 border border-dark-700/50 rounded-2xl p-5 fade-in">
+                                    <div class="flex items-center gap-3 mb-4">
+                                        <div class="w-9 h-9 rounded-xl bg-primary-600/10 flex items-center justify-center">
+                                            <i data-lucide="gauge" class="w-4 h-4 text-primary-400"></i>
+                                        </div>
+                                        <h2 class="text-lg font-semibold">Processamento</h2>
+                                    </div>
+                                    <div class="mb-4">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <span class="text-sm text-dark-400">Taxa de processamento</span>
+                                            <span class="text-sm font-bold text-primary-400">${taxaProcessamento}%</span>
+                                        </div>
+                                        <div class="h-2 bg-dark-700/50 rounded-full overflow-hidden">
+                                            <div class="progress-bar h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full" style="width: ${taxaProcessamento}%"></div>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2.5">
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="flex items-center gap-2 text-dark-400">
+                                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                                Pendentes
+                                            </span>
+                                            <span class="font-semibold">${pendentes}</span>
+                                        </div>
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="flex items-center gap-2 text-dark-400">
+                                                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                                                Lidos
+                                            </span>
+                                            <span class="font-semibold">${lidos}</span>
+                                        </div>
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="flex items-center gap-2 text-dark-400">
+                                                <span class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                                                Arquivados
+                                            </span>
+                                            <span class="font-semibold">${arquivados}</span>
+                                        </div>
+                                        <div class="gradient-line my-2"></div>
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="flex items-center gap-2 text-dark-300 font-medium">
+                                                <span class="w-2.5 h-2.5 rounded-full bg-primary-500"></span>
+                                                Total
+                                            </span>
+                                            <span class="font-bold text-lg">${totalRespostas}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Formulários Recentes -->
+                        ${formsRecentes.length > 0 ? `
+                        <div class="mt-6 bg-dark-900 border border-dark-700/50 rounded-2xl fade-in">
+                            <div class="p-5 border-b border-dark-700/50 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-xl bg-emerald-600/10 flex items-center justify-center">
+                                        <i data-lucide="file-text" class="w-4 h-4 text-emerald-400"></i>
+                                    </div>
+                                    <h2 class="text-lg font-semibold">Formulários Recentes</h2>
+                                </div>
+                                <button onclick="Router.navigate('/admin/forms')" class="text-primary-400 hover:text-primary-300 text-sm font-medium transition-colors flex items-center gap-1">
+                                    Ver todos
+                                    <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 p-5">
+                                ${formsRecentes.map(f => {
+                                    const respCount = DB.getRespostasByFormulario(f.id).length;
+                                    return `
+                                    <div class="quick-action bg-dark-800/50 hover:bg-dark-800 rounded-xl p-4 border border-dark-700/50 transition-all cursor-pointer" onclick="Router.navigate('/admin/received')">
+                                        <div class="flex items-center justify-between mb-3">
+                                            <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
+                                                <i data-lucide="file-text" class="w-4 h-4 text-white"></i>
+                                            </div>
+                                            <span class="text-xs bg-dark-700 px-2 py-1 rounded-full text-dark-400">${f.campos.length} campos</span>
+                                        </div>
+                                        <p class="font-medium text-sm truncate mb-1">${Utils.escapeHtml(f.titulo)}</p>
+                                        <p class="text-xs text-dark-500 flex items-center gap-1">
+                                            <i data-lucide="message-square" class="w-3 h-3"></i>
+                                            ${respCount} resposta${respCount !== 1 ? 's' : ''}
+                                        </p>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </main>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+
+    // =====================================================
+    // PÁGINA: Gerenciar Formulários
+    // =====================================================
+    function renderForms() {
+        const formularios = DB.getFormularios();
+        
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="min-h-screen bg-dark-950">
+                ${Sidebar.render('forms')}
+                
+                <main class="lg:ml-64 pt-16 lg:pt-0">
+                    <div class="p-4 md:p-8 max-w-7xl mx-auto">
+                        <!-- Header -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 fade-in">
+                            <div>
+                                <h1 class="text-2xl md:text-3xl font-bold mb-2">Formulários</h1>
+                                <p class="text-dark-400">Crie e gerencie seus formulários</p>
+                            </div>
+                            <button onclick="showCreateFormModal()" class="px-5 py-3 bg-primary-600 hover:bg-primary-700 rounded-xl font-medium transition-all btn-press flex items-center justify-center gap-2 shadow-lg shadow-primary-600/20">
+                                <i data-lucide="plus" class="w-5 h-5"></i>
+                                Novo Formulário
+                            </button>
+                        </div>
+                        
+                        <!-- Forms List -->
+                        <div class="grid gap-4 fade-in">
+                            ${formularios.length > 0 ? formularios.map(f => {
+                                const respostas = DB.getRespostasByFormulario(f.id);
+                                return `
+                                    <div class="card-hover bg-dark-900 border border-dark-700/50 rounded-2xl p-5 md:p-6">
+                                        <div class="flex flex-col md:flex-row md:items-center gap-4">
+                                            <div class="flex-1">
+                                                <div class="flex items-center gap-3 mb-2">
+                                                    <h3 class="text-lg font-semibold">${Utils.escapeHtml(f.titulo)}</h3>
+                                                    <span class="text-xs bg-dark-800 px-2 py-1 rounded-full text-dark-400">${f.campos.length} campo${f.campos.length > 1 ? 's' : ''}</span>
+                                                </div>
+                                                <p class="text-dark-400 text-sm mb-3">${Utils.escapeHtml(f.descricao || 'Sem descrição')}</p>
+                                                <div class="flex items-center gap-4 text-xs text-dark-500">
+                                                    <span class="flex items-center gap-1">
+                                                        <i data-lucide="calendar" class="w-3 h-3"></i>
+                                                        ${Utils.formatDate(f.createdAt)}
+                                                    </span>
+                                                    <span class="flex items-center gap-1">
+                                                        <i data-lucide="inbox" class="w-3 h-3"></i>
+                                                        ${respostas.length} resposta${respostas.length !== 1 ? 's' : ''}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <button onclick="copyFormLink('${f.id}')" class="px-4 py-2 bg-dark-800 hover:bg-dark-700 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
+                                                    <i data-lucide="link" class="w-4 h-4"></i>
+                                                    Copiar Link
+                                                </button>
+                                                <button onclick="previewForm('${f.id}')" class="px-4 py-2 bg-dark-800 hover:bg-dark-700 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
+                                                    <i data-lucide="eye" class="w-4 h-4"></i>
+                                                    Visualizar
+                                                </button>
+                                                <button onclick="deleteForm('${f.id}')" class="px-4 py-2 bg-red-600/10 hover:bg-red-600/20 text-red-400 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
+                                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('') : `
+                                <div class="bg-dark-900 border border-dark-700/50 rounded-2xl p-12 text-center">
+                                    <div class="w-16 h-16 rounded-2xl bg-dark-800 flex items-center justify-center mx-auto mb-4">
+                                        <i data-lucide="file-plus" class="w-8 h-8 text-dark-500"></i>
+                                    </div>
+                                    <h3 class="text-lg font-semibold mb-2">Nenhum formulário criado</h3>
+                                    <p class="text-dark-400 mb-6">Crie seu primeiro formulário para começar a receber respostas</p>
+                                    <button onclick="showCreateFormModal()" class="px-6 py-3 bg-primary-600 hover:bg-primary-700 rounded-xl font-medium transition-all btn-press inline-flex items-center gap-2">
+                                        <i data-lucide="plus" class="w-5 h-5"></i>
+                                        Criar Formulário
+                                    </button>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </main>
+            </div>
+            
+            <!-- Modal: Criar Formulário -->
+            <div id="create-form-modal" class="fixed inset-0 z-50 hidden">
+                <div class="absolute inset-0 bg-black/60 modal-backdrop" onclick="closeModal('create-form-modal')"></div>
+                <div class="absolute inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-2xl md:max-h-[90vh] bg-dark-900 border border-dark-700 rounded-2xl overflow-hidden flex flex-col">
+                    <div class="p-5 border-b border-dark-700/50 flex items-center justify-between">
+                        <h2 class="text-lg font-semibold">Novo Formulário</h2>
+                        <button onclick="closeModal('create-form-modal')" class="p-2 hover:bg-dark-800 rounded-xl transition-colors">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <div class="p-5 overflow-y-auto flex-1" id="form-builder">
+                        <!-- Título -->
+                        <div class="mb-5">
+                            <label class="block text-sm font-medium text-dark-300 mb-2">Título do Formulário *</label>
+                            <input type="text" id="form-title" placeholder="Ex: Cadastro de Cliente" class="w-full px-4 py-3 bg-dark-800 border border-dark-600 rounded-xl focus:outline-none focus:border-primary-500 transition-colors">
+                        </div>
+                        
+                        <!-- Descrição -->
+                        <div class="mb-5">
+                            <label class="block text-sm font-medium text-dark-300 mb-2">Descrição</label>
+                            <textarea id="form-desc" rows="2" placeholder="Breve descrição do formulário" class="w-full px-4 py-3 bg-dark-800 border border-dark-600 rounded-xl focus:outline-none focus:border-primary-500 transition-colors resize-none"></textarea>
+                        </div>
+                        
+                        <!-- Campos -->
+                        <div class="mb-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <label class="text-sm font-medium text-dark-300">Campos</label>
+                                <button onclick="addField()" class="text-primary-400 hover:text-primary-300 text-sm font-medium flex items-center gap-1 transition-colors">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                    Adicionar Campo
+                                </button>
+                            </div>
+                            <div id="fields-container" class="space-y-3">
+                                <!-- Campos serão inseridos aqui -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-5 border-t border-dark-700/50 flex gap-3">
+                        <button onclick="closeModal('create-form-modal')" class="flex-1 px-4 py-3 bg-dark-800 hover:bg-dark-700 rounded-xl font-medium transition-colors">Cancelar</button>
+                        <button onclick="saveForm()" class="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-700 rounded-xl font-medium transition-colors btn-press">Salvar Formulário</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+
+    // =====================================================
+    // MÓDULO: Builder de Formulários
+    // =====================================================
+    let fieldCounter = 0;
+
+    function addField(data = null) {
+        const container = document.getElementById('fields-container');
+        const id = fieldCounter++;
+        
+        const fieldHtml = `
+            <div class="bg-dark-800 border border-dark-600 rounded-xl p-4 field-item" data-field-id="${id}">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs text-dark-500 font-medium">Campo ${container.children.length + 1}</span>
+                    <button onclick="this.closest('.field-item').remove()" class="p-1 hover:bg-dark-700 rounded-lg transition-colors text-dark-400 hover:text-red-400">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                    <input type="text" placeholder="Rótulo do campo" value="${data?.label || ''}" class="field-label px-3 py-2.5 bg-dark-900 border border-dark-600 rounded-lg text-sm focus:outline-none focus:border-primary-500 transition-colors">
+                    <select class="field-type px-3 py-2.5 bg-dark-900 border border-dark-600 rounded-lg text-sm focus:outline-none focus:border-primary-500 transition-colors" onchange="toggleOptions(this)">
+                        <option value="texto" ${data?.tipo === 'texto' ? 'selected' : ''}>Texto</option>
+                        <option value="email" ${data?.tipo === 'email' ? 'selected' : ''}>E-mail</option>
+                        <option value="tel" ${data?.tipo === 'tel' ? 'selected' : ''}>Telefone</option>
+                        <option value="number" ${data?.tipo === 'number' ? 'selected' : ''}>Número</option>
+                        <option value="date" ${data?.tipo === 'date' ? 'selected' : ''}>Data</option>
+                        <option value="textarea" ${data?.tipo === 'textarea' ? 'selected' : ''}>Texto Longo</option>
+                        <option value="select" ${data?.tipo === 'select' ? 'selected' : ''}>Lista Suspensa</option>
+                        <option value="radio" ${data?.tipo === 'radio' ? 'selected' : ''}>Seleção Única</option>
+                        <option value="checkbox" ${data?.tipo === 'checkbox' ? 'selected' : ''}>Múltipla Escolha</option>
+                    </select>
+                </div>
+                <div class="field-options-container ${['select', 'radio', 'checkbox'].includes(data?.tipo) ? '' : 'hidden'}">
+                    <label class="block text-xs text-dark-500 mb-1">Opções (uma por linha)</label>
+                    <textarea class="field-options w-full px-3 py-2 bg-dark-900 border border-dark-600 rounded-lg text-sm focus:outline-none focus:border-primary-500 transition-colors resize-none" rows="3" placeholder="Opção 1&#10;Opção 2&#10;Opção 3">${data?.opcoes?.join('\n') || ''}</textarea>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="req-${id}" class="field-required w-4 h-4 rounded bg-dark-900 border-dark-600 text-primary-600 focus:ring-primary-500" ${data?.obrigatorio ? 'checked' : ''}>
+                    <label for="req-${id}" class="text-xs text-dark-400">Obrigatório</label>
+                </div>
+            </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', fieldHtml);
+        lucide.createIcons({ nodes: [container.lastElementChild] });
+    }
+
+    function toggleOptions(select) {
+        const container = select.closest('.field-item').querySelector('.field-options-container');
+        if (['select', 'radio', 'checkbox'].includes(select.value)) {
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+
+    function saveForm() {
+        const title = document.getElementById('form-title').value.trim();
+        const desc = document.getElementById('form-desc').value.trim();
+        const fieldItems = document.querySelectorAll('.field-item');
+        
+        if (!title) {
+            Toast.show('Informe o título do formulário', 'error');
+            return;
+        }
+        
+        if (fieldItems.length === 0) {
+            Toast.show('Adicione pelo menos um campo', 'error');
+            return;
+        }
+        
+        const campos = [];
+        let valid = true;
+        
+        fieldItems.forEach((item, index) => {
+            const label = item.querySelector('.field-label').value.trim();
+            const tipo = item.querySelector('.field-type').value;
+            const obrigatorio = item.querySelector('.field-required').checked;
+            
+            if (!label) {
+                Toast.show(`Campo ${index + 1}: informe o rótulo`, 'error');
+                valid = false;
+                return;
+            }
+            
+            const campo = { id: 'c' + Date.now() + index, tipo, label, obrigatorio };
+            
+            if (['select', 'radio', 'checkbox'].includes(tipo)) {
+                const optionsText = item.querySelector('.field-options').value.trim();
+                campo.opcoes = optionsText.split('\n').filter(o => o.trim());
+                if (campo.opcoes.length === 0) {
+                    Toast.show(`Campo "${label}": adicione pelo menos uma opção`, 'error');
+                    valid = false;
+                    return;
+                }
+            }
+            
+            campos.push(campo);
+        });
+        
+        if (!valid || campos.length === 0) return;
+        
+        DB.saveFormulario({ titulo: title, descricao: desc, campos });
+        closeModal('create-form-modal');
+        Toast.show('Formulário criado com sucesso!');
+        renderForms();
+    }
+
+    function copyFormLink(formId) {
+        const link = Utils.getFormLink(formId);
+        Utils.copyToClipboard(link);
+        Toast.show('Link copiado para a área de transferência!');
+    }
+
+    function previewForm(formId) {
+        window.open(Utils.getFormLink(formId), '_blank');
+    }
+
+    function deleteForm(formId) {
+        if (confirm('Tem certeza que deseja excluir este formulário?')) {
+            DB.deleteFormulario(formId);
+            Toast.show('Formulário excluído', 'info');
+            renderForms();
+        }
+    }
+
+    // =====================================================
+    // PÁGINA: Recebidos
+    // =====================================================
+    function renderReceived() {
+        const respostas = [...DB.getRespostas()].sort((a, b) => new Date(b.receivedAt) - new Date(a.receivedAt));
+        const pendentes = respostas.filter(r => r.status === 'pendente').length;
+        const lidos = respostas.filter(r => r.status === 'lido').length;
+        const arquivados = respostas.filter(r => r.status === 'arquivado').length;
+        
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="min-h-screen bg-dark-950">
+                ${Sidebar.render('received')}
+                
+                <main class="lg:ml-64 pt-16 lg:pt-0">
+                    <div class="p-4 md:p-8 max-w-7xl mx-auto">
+                        <!-- Header -->
+                        <div class="mb-6 fade-in">
+                            <h1 class="text-2xl md:text-3xl font-bold mb-2">Recebidos</h1>
+                            <p class="text-dark-400">Formulários preenchidos pelos clientes</p>
+                        </div>
+                        
+                        <!-- Filters -->
+                        <div class="flex flex-wrap gap-2 mb-6 fade-in">
+                            <button onclick="filterReceived('todos')" class="filter-btn px-4 py-2 rounded-xl text-sm font-medium transition-all bg-primary-600/20 text-primary-400 border border-primary-500/30" data-filter="todos">
+                                Todos (${respostas.length})
+                            </button>
+                            <button onclick="filterReceived('pendente')" class="filter-btn px-4 py-2 rounded-xl text-sm font-medium transition-all bg-dark-800 text-dark-400 border border-dark-700" data-filter="pendente">
+                                Pendentes (${pendentes})
+                            </button>
+                            <button onclick="filterReceived('lido')" class="filter-btn px-4 py-2 rounded-xl text-sm font-medium transition-all bg-dark-800 text-dark-400 border border-dark-700" data-filter="lido">
+                                Lidos (${lidos})
+                            </button>
+                            <button onclick="filterReceived('arquivado')" class="filter-btn px-4 py-2 rounded-xl text-sm font-medium transition-all bg-dark-800 text-dark-400 border border-dark-700" data-filter="arquivado">
+                                Arquivados (${arquivados})
+                            </button>
+                        </div>
+                        
+                        <!-- List -->
+                        <div id="received-list" class="grid gap-3 fade-in">
+                            ${respostas.length > 0 ? respostas.map(r => renderRespostaCard(r)).join('') : `
+                                <div class="bg-dark-900 border border-dark-700/50 rounded-2xl p-12 text-center">
+                                    <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 text-dark-600"></i>
+                                    <p class="text-dark-400">Nenhuma resposta recebida</p>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </main>
+            </div>
+            
+            <!-- Modal: Visualizar Resposta -->
+            <div id="view-resposta-modal" class="fixed inset-0 z-50 hidden">
+                <div class="absolute inset-0 bg-black/60 modal-backdrop" onclick="closeModal('view-resposta-modal')"></div>
+                <div class="absolute inset-4 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-2xl md:max-h-[90vh] bg-dark-900 border border-dark-700 rounded-2xl overflow-hidden flex flex-col">
+                    <div class="p-5 border-b border-dark-700/50 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold" id="modal-title">Detalhes da Resposta</h2>
+                            <p class="text-sm text-dark-400" id="modal-subtitle"></p>
+                        </div>
+                        <button onclick="closeModal('view-resposta-modal')" class="p-2 hover:bg-dark-800 rounded-xl transition-colors">
+                            <i data-lucide="x" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <div class="p-5 overflow-y-auto flex-1" id="modal-content">
+                        <!-- Conteúdo dinâmico -->
+                    </div>
+                    <div class="p-5 border-t border-dark-700/50 flex flex-wrap gap-3" id="modal-actions">
+                        <!-- Ações dinâmicas -->
+                    </div>
+                </div>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+
+    function renderRespostaCard(r) {
+        const statusColors = {
+            pendente: 'bg-amber-500/10 border-amber-500/20',
+            lido: 'bg-emerald-500/10 border-emerald-500/20',
+            arquivado: 'bg-dark-700/50 border-dark-600'
+        };
+        
+        return `
+            <div class="resposta-card card-hover bg-dark-900 border ${statusColors[r.status]} rounded-2xl p-4 md:p-5 cursor-pointer transition-all" data-status="${r.status}" onclick="viewResposta('${r.id}')">
+                <div class="flex items-start gap-4">
+                    <div class="w-11 h-11 rounded-xl bg-dark-800 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="user" class="w-5 h-5 text-dark-400"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <h3 class="font-semibold truncate">${Utils.escapeHtml(r.formularioTitulo)}</h3>
+                            <span class="status-${r.status} px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white uppercase tracking-wider">${r.status}</span>
+                        </div>
+                        <p class="text-sm text-dark-400 mb-2">${Utils.timeAgo(r.receivedAt)}</p>
+                        <div class="flex flex-wrap gap-2">
+                            ${Object.entries(r.dados).slice(0, 3).map(([k, v]) => `
+                                <span class="text-xs bg-dark-800 px-2 py-1 rounded-lg text-dark-300">${Utils.escapeHtml(k)}: ${Utils.escapeHtml(String(v).substring(0, 30))}</span>
+                            `).join('')}
+                            ${Object.keys(r.dados).length > 3 ? `<span class="text-xs text-dark-500">+${Object.keys(r.dados).length - 3} campos</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <button onclick="event.stopPropagation(); cycleStatus('${r.id}')" class="p-2 hover:bg-dark-800 rounded-lg transition-colors" title="Alterar status">
+                            <i data-lucide="refresh-cw" class="w-4 h-4 text-dark-400"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function filterReceived(status) {
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.className = 'filter-btn px-4 py-2 rounded-xl text-sm font-medium transition-all bg-dark-800 text-dark-400 border border-dark-700';
+        });
+        document.querySelector(`[data-filter="${status}"]`).className = 'filter-btn px-4 py-2 rounded-xl text-sm font-medium transition-all bg-primary-600/20 text-primary-400 border border-primary-500/30';
+        
+        document.querySelectorAll('.resposta-card').forEach(card => {
+            if (status === 'todos' || card.dataset.status === status) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    function viewResposta(id) {
+        const r = DB.getRespostas().find(resp => resp.id === id);
+        if (!r) return;
+        
+        // Marcar como lido
+        if (r.status === 'pendente') {
+            DB.updateRespostaStatus(id, 'lido');
+            r.status = 'lido';
+        }
+        
+        document.getElementById('modal-title').textContent = r.formularioTitulo;
+        document.getElementById('modal-subtitle').textContent = `Recebido em ${Utils.formatDateTime(r.receivedAt)}`;
+        
+        document.getElementById('modal-content').innerHTML = `
+            <div class="space-y-4">
+                ${Object.entries(r.dados).map(([key, value]) => `
+                    <div class="bg-dark-800 rounded-xl p-4">
+                        <label class="block text-xs text-dark-500 font-medium mb-1 uppercase tracking-wider">${Utils.escapeHtml(key)}</label>
+                        <p class="text-white">${Utils.escapeHtml(String(value || '—'))}</p>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+        
+        document.getElementById('modal-actions').innerHTML = `
+            <select onchange="changeStatus('${r.id}', this.value)" class="px-4 py-2.5 bg-dark-800 border border-dark-600 rounded-xl text-sm focus:outline-none focus:border-primary-500">
+                <option value="pendente" ${r.status === 'pendente' ? 'selected' : ''}>🟡 Pendente</option>
+                <option value="lido" ${r.status === 'lido' ? 'selected' : ''}>🟢 Lido</option>
+                <option value="arquivado" ${r.status === 'arquivado' ? 'selected' : ''}>⚪ Arquivado</option>
+            </select>
+            <button onclick="exportPDF('${r.id}')" class="px-4 py-2.5 bg-red-600/10 hover:bg-red-600/20 text-red-400 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
+                <i data-lucide="file-down" class="w-4 h-4"></i>
+                Baixar PDF
+            </button>
+            <button onclick="exportDOC('${r.id}')" class="px-4 py-2.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
+                <i data-lucide="file-text" class="w-4 h-4"></i>
+                Baixar DOC
+            </button>
+            <button onclick="deleteResposta('${r.id}')" class="px-4 py-2.5 bg-dark-800 hover:bg-red-600/20 hover:text-red-400 text-dark-400 rounded-xl text-sm font-medium transition-colors flex items-center gap-2 ml-auto">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                Excluir
+            </button>
+        `;
+        
+        document.getElementById('view-resposta-modal').classList.remove('hidden');
+        lucide.createIcons({ nodes: [document.getElementById('modal-actions')] });
+    }
+
+    function changeStatus(id, status) {
+        DB.updateRespostaStatus(id, status);
+        Toast.show(`Status alterado para "${status}"`, 'info');
+        closeModal('view-resposta-modal');
+        
+        // Re-render conforme a página atual (hash-based)
+        const hash = window.location.hash.slice(1).split('?')[0];
+        if (hash === '/admin/received') renderReceived();
+        else if (hash === '/admin/history') renderHistory();
+        else renderDashboard();
+    }
+
+    function cycleStatus(id) {
+        const r = DB.getRespostas().find(resp => resp.id === id);
+        if (!r) return;
+        const order = ['pendente', 'lido', 'arquivado'];
+        const next = order[(order.indexOf(r.status) + 1) % order.length];
+        DB.updateRespostaStatus(id, next);
+        Toast.show(`Status alterado para "${next}"`, 'info');
+        renderReceived();
+    }
+
+    function deleteResposta(id) {
+        if (confirm('Excluir esta resposta permanentemente?')) {
+            DB.deleteResposta(id);
+            closeModal('view-resposta-modal');
+            Toast.show('Resposta excluída', 'info');
+            const hash = window.location.hash.slice(1).split('?')[0];
+            if (hash === '/admin/received') renderReceived();
+            else if (hash === '/admin/history') renderHistory();
+            else renderDashboard();
+        }
+    }
+
+    // =====================================================
+    // PÁGINA: Histórico
+    // =====================================================
+    function renderHistory() {
+        const respostas = [...DB.getRespostas()].sort((a, b) => new Date(b.receivedAt) - new Date(a.receivedAt));
+        const formularios = DB.getFormularios();
+        
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="min-h-screen bg-dark-950">
+                ${Sidebar.render('history')}
+                
+                <main class="lg:ml-64 pt-16 lg:pt-0">
+                    <div class="p-4 md:p-8 max-w-7xl mx-auto">
+                        <!-- Header -->
+                        <div class="mb-6 fade-in">
+                            <h1 class="text-2xl md:text-3xl font-bold mb-2">Histórico</h1>
+                            <p class="text-dark-400">Busque e filtre formulários antigos</p>
+                        </div>
+                        
+                        <!-- Search & Filters -->
+                        <div class="bg-dark-900 border border-dark-700/50 rounded-2xl p-4 mb-6 fade-in">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div class="relative md:col-span-1">
+                                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-dark-500"></i>
+                                    <input type="text" id="history-search" placeholder="Buscar por nome, e-mail..." oninput="filterHistory()" class="w-full pl-10 pr-4 py-3 bg-dark-800 border border-dark-600 rounded-xl text-sm focus:outline-none focus:border-primary-500 transition-colors">
+                                </div>
+                                <select id="history-form-filter" onchange="filterHistory()" class="px-4 py-3 bg-dark-800 border border-dark-600 rounded-xl text-sm focus:outline-none focus:border-primary-500 transition-colors">
+                                    <option value="todos">Todos os formulários</option>
+                                    ${formularios.map(f => `<option value="${f.id}">${Utils.escapeHtml(f.titulo)}</option>`).join('')}
+                                </select>
+                                <select id="history-status-filter" onchange="filterHistory()" class="px-4 py-3 bg-dark-800 border border-dark-600 rounded-xl text-sm focus:outline-none focus:border-primary-500 transition-colors">
+                                    <option value="todos">Todos os status</option>
+                                    <option value="pendente">Pendente</option>
+                                    <option value="lido">Lido</option>
+                                    <option value="arquivado">Arquivado</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Results -->
+                        <div id="history-results" class="grid gap-3 fade-in">
+                            ${respostas.length > 0 ? respostas.map(r => renderRespostaCard(r)).join('') : `
+                                <div class="bg-dark-900 border border-dark-700/50 rounded-2xl p-12 text-center">
+                                    <i data-lucide="clock" class="w-12 h-12 mx-auto mb-3 text-dark-600"></i>
+                                    <p class="text-dark-400">Nenhum registro no histórico</p>
+                                </div>
+                            `}
+                        </div>
+                        
+                        <!-- Export All -->
+                        ${respostas.length > 0 ? `
+                            <div class="mt-6 flex flex-wrap gap-3 fade-in">
+                                <button onclick="exportAllPDF()" class="px-5 py-3 bg-red-600/10 hover:bg-red-600/20 text-red-400 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
+                                    <i data-lucide="file-down" class="w-4 h-4"></i>
+                                    Exportar Tudo (PDF)
+                                </button>
+                                <button onclick="exportAllDOC()" class="px-5 py-3 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
+                                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                                    Exportar Tudo (DOC)
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                </main>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+
+    function filterHistory() {
+        const search = document.getElementById('history-search').value.toLowerCase();
+        const formId = document.getElementById('history-form-filter').value;
+        const status = document.getElementById('history-status-filter').value;
+        
+        document.querySelectorAll('.resposta-card').forEach(card => {
+            const text = card.textContent.toLowerCase();
+            const matchesSearch = !search || text.includes(search);
+            
+            // Para formulário e status, precisamos acessar os dados
+            const cardId = card.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+            const resposta = DB.getRespostas().find(r => r.id === cardId);
+            
+            const matchesForm = formId === 'todos' || resposta?.formularioId === formId;
+            const matchesStatus = status === 'todos' || resposta?.status === status;
+            
+            card.style.display = (matchesSearch && matchesForm && matchesStatus) ? '' : 'none';
+        });
+    }
+
+    // =====================================================
+    // EXPORTAÇÃO: PDF e DOC
+    // =====================================================
+    function exportPDF(id) {
+        const r = DB.getRespostas().find(resp => resp.id === id);
+        if (!r) return;
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Header
+        doc.setFillColor(30, 41, 59);
+        doc.rect(0, 0, 210, 40, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(20);
+        doc.text('FormFlow', 20, 20);
+        doc.setFontSize(10);
+        doc.text(`Formulário: ${r.formularioTitulo}`, 20, 28);
+        doc.text(`Recebido: ${Utils.formatDateTime(r.receivedAt)}`, 20, 34);
+        
+        // Status
+        const statusColors = { pendente: [245, 158, 11], lido: [16, 185, 129], arquivado: [107, 114, 128] };
+        const [sr, sg, sb] = statusColors[r.status] || [107, 114, 128];
+        doc.setFillColor(sr, sg, sb);
+        doc.roundedRect(160, 12, 30, 10, 3, 3, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(8);
+        doc.text(r.status.toUpperCase(), 175, 19, { align: 'center' });
+        
+        // Content
+        let y = 55;
+        doc.setTextColor(30, 41, 59);
+        
+        Object.entries(r.dados).forEach(([key, value]) => {
+            doc.setFontSize(9);
+            doc.setTextColor(100, 116, 139);
+            doc.text(key.toUpperCase(), 20, y);
+            
+            y += 7;
+            doc.setFontSize(12);
+            doc.setTextColor(30, 41, 59);
+            
+            const lines = doc.splitTextToSize(String(value || '—'), 170);
+            doc.text(lines, 20, y);
+            y += lines.length * 6 + 12;
+            
+            if (y > 270) {
+                doc.addPage();
+                y = 20;
+            }
+        });
+        
+        // Footer
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Gerado por FormFlow em ${Utils.formatDateTime(new Date().toISOString())}`, 105, 290, { align: 'center' });
+        
+        doc.save(`FormFlow_${r.formularioTitulo.replace(/\s+/g, '_')}_${Utils.formatDate(r.receivedAt).replace(/\//g, '-')}.pdf`);
+        Toast.show('PDF exportado com sucesso!');
+    }
+
+    function exportDOC(id) {
+        const r = DB.getRespostas().find(resp => resp.id === id);
+        if (!r) return;
+        
+        const html = `
+            <html>
+            <head>
+                <style>
+                    body { font-family: 'Calibri', sans-serif; color: #1e293b; padding: 40px; }
+                    h1 { color: #4f46e5; font-size: 24px; margin-bottom: 5px; }
+                    .subtitle { color: #64748b; font-size: 12px; margin-bottom: 30px; }
+                    .status { display: inline-block; padding: 4px 12px; border-radius: 12px; color: white; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+                    .field { margin-bottom: 20px; }
+                    .field-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+                    .field-value { font-size: 14px; color: #1e293b; padding: 8px 12px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0; }
+                    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #94a3b8; text-align: center; }
+                </style>
+            </head>
+            <body>
+                <h1>${r.formularioTitulo}</h1>
+                <div class="subtitle">Recebido em ${Utils.formatDateTime(r.receivedAt)}</div>
+                ${Object.entries(r.dados).map(([key, value]) => `
+                    <div class="field">
+                        <div class="field-label">${key}</div>
+                        <div class="field-value">${String(value || '—')}</div>
+                    </div>
+                `).join('')}
+                <div class="footer">Gerado por FormFlow em ${Utils.formatDateTime(new Date().toISOString())}</div>
+            </body>
+            </html>
+        `;
+        
+        const blob = htmlDocx.asBlob(html);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `FormFlow_${r.formularioTitulo.replace(/\s+/g, '_')}_${Utils.formatDate(r.receivedAt).replace(/\//g, '-')}.doc`;
+        a.click();
+        URL.revokeObjectURL(url);
+        Toast.show('DOC exportado com sucesso!');
+    }
+
+    function exportAllPDF() {
+        const respostas = DB.getRespostas();
+        if (respostas.length === 0) return;
+        
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Cover page
+        doc.setFillColor(30, 41, 59);
+        doc.rect(0, 0, 210, 297, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(32);
+        doc.text('FormFlow', 105, 120, { align: 'center' });
+        doc.setFontSize(14);
+        doc.text('Relatório Completo de Respostas', 105, 140, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text(`Total: ${respostas.length} resposta(s)`, 105, 155, { align: 'center' });
+        doc.text(`Gerado em: ${Utils.formatDateTime(new Date().toISOString())}`, 105, 165, { align: 'center' });
+        
+        respostas.forEach((r, index) => {
+            doc.addPage();
+            
+            // Header
+            doc.setFillColor(30, 41, 59);
+            doc.rect(0, 0, 210, 35, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(14);
+            doc.text(`${index + 1}. ${r.formularioTitulo}`, 20, 18);
+            doc.setFontSize(9);
+            doc.text(`Recebido: ${Utils.formatDateTime(r.receivedAt)} | Status: ${r.status.toUpperCase()}`, 20, 26);
+            
+            let y = 50;
+            Object.entries(r.dados).forEach(([key, value]) => {
+                doc.setFontSize(9);
+                doc.setTextColor(100, 116, 139);
+                doc.text(key.toUpperCase(), 20, y);
+                y += 7;
+                doc.setFontSize(11);
+                doc.setTextColor(30, 41, 59);
+                const lines = doc.splitTextToSize(String(value || '—'), 170);
+                doc.text(lines, 20, y);
+                y += lines.length * 5 + 10;
+                if (y > 270) { doc.addPage(); y = 20; }
+            });
+        });
+        
+        doc.save(`FormFlow_Relatorio_Completo_${Utils.formatDate(new Date().toISOString()).replace(/\//g, '-')}.pdf`);
+        Toast.show('Relatório PDF exportado!');
+    }
+
+    function exportAllDOC() {
+        const respostas = DB.getRespostas();
+        if (respostas.length === 0) return;
+        
+        const html = `
+            <html>
+            <head>
+                <style>
+                    body { font-family: 'Calibri', sans-serif; color: #1e293b; padding: 40px; }
+                    h1 { color: #4f46e5; font-size: 28px; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; }
+                    h2 { color: #334155; font-size: 18px; margin-top: 30px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px; }
+                    .meta { color: #64748b; font-size: 11px; margin-bottom: 20px; }
+                    .field { margin-bottom: 15px; }
+                    .field-label { font-size: 9px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+                    .field-value { font-size: 13px; color: #1e293b; padding: 6px 10px; background: #f8fafc; border-radius: 4px; border: 1px solid #e2e8f0; }
+                    .divider { border-top: 1px dashed #cbd5e1; margin: 25px 0; }
+                </style>
+            </head>
+            <body>
+                <h1>FormFlow - Relatório de Respostas</h1>
+                <div class="meta">Total: ${respostas.length} resposta(s) | Gerado em: ${Utils.formatDateTime(new Date().toISOString())}</div>
+                ${respostas.map((r, i) => `
+                    <h2>${i + 1}. ${r.formularioTitulo}</h2>
+                    <div class="meta">Recebido: ${Utils.formatDateTime(r.receivedAt)} | Status: ${r.status}</div>
+                    ${Object.entries(r.dados).map(([key, value]) => `
+                        <div class="field">
+                            <div class="field-label">${key}</div>
+                            <div class="field-value">${String(value || '—')}</div>
+                        </div>
+                    `).join('')}
+                    ${i < respostas.length - 1 ? '<div class="divider"></div>' : ''}
+                `).join('')}
+            </body>
+            </html>
+        `;
+        
+        const blob = htmlDocx.asBlob(html);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `FormFlow_Relatorio_${Utils.formatDate(new Date().toISOString()).replace(/\//g, '-')}.doc`;
+        a.click();
+        URL.revokeObjectURL(url);
+        Toast.show('Relatório DOC exportado!');
+    }
+
+    // =====================================================
+    // PÁGINA: Formulário Público (Cliente)
+    // =====================================================
+    function renderFormView(formId) {
+        const form = DB.getFormularioById(formId);
+        
+        if (!form) {
+            const app = document.getElementById('app');
+            app.innerHTML = `
+                <div class="min-h-screen bg-dark-950 flex items-center justify-center p-4">
+                    <div class="text-center max-w-sm">
+                        <div class="w-16 h-16 rounded-2xl bg-red-600/10 flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="alert-circle" class="w-8 h-8 text-red-400"></i>
+                        </div>
+                        <h1 class="text-xl font-bold mb-2">Formulário não encontrado</h1>
+                        <p class="text-dark-400 text-sm">Este link pode estar incorreto ou o formulário foi removido.</p>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+            return;
+        }
+        
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <div class="min-h-screen bg-dark-950">
+                <!-- Header -->
+                <div class="bg-dark-900/80 backdrop-blur-sm border-b border-dark-700/50 sticky top-0 z-30">
+                    <div class="max-w-lg mx-auto px-4 py-4 flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="file-text" class="w-4 h-4"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h1 class="font-bold text-sm md:text-base truncate">${Utils.escapeHtml(form.titulo)}</h1>
+                            <p class="text-xs text-dark-400 truncate">${Utils.escapeHtml(form.descricao || '')}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Form -->
+                <div class="max-w-lg mx-auto px-4 py-6 md:py-8">
+                    <form id="public-form" onsubmit="submitForm(event, '${form.id}')" class="space-y-5">
+                        ${form.campos.map(campo => renderFormField(campo)).join('')}
+                        
+                        <button type="submit" id="submit-btn" class="w-full py-4 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 rounded-2xl font-semibold text-base transition-all btn-press shadow-lg shadow-primary-600/25 flex items-center justify-center gap-2 mt-8">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                            Enviar Formulário
+                        </button>
+                    </form>
+                    
+                    <!-- Success Message -->
+                    <div id="success-message" class="hidden text-center py-12">
+                        <div class="w-20 h-20 rounded-3xl bg-emerald-600/10 flex items-center justify-center mx-auto mb-6">
+                            <i data-lucide="check-circle" class="w-10 h-10 text-emerald-400"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold mb-3">Enviado com sucesso!</h2>
+                        <p class="text-dark-400 mb-8">Obrigado por preencher o formulário. Suas respostas foram registradas.</p>
+                        <button onclick="window.location.reload()" class="px-6 py-3 bg-dark-800 hover:bg-dark-700 rounded-xl font-medium transition-colors">
+                            Preencher Novamente
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Footer -->
+                <div class="max-w-lg mx-auto px-4 py-6 text-center">
+                    <p class="text-xs text-dark-600">Powered by FormFlow</p>
+                </div>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+
+    function renderFormField(campo) {
+        const required = campo.obrigatorio ? 'required' : '';
+        const requiredMark = campo.obrigatorio ? '<span class="text-red-400 ml-1">*</span>' : '';
+        
+        let input = '';
+        
+        switch (campo.tipo) {
+            case 'textarea':
+                input = `<textarea name="${campo.id}" ${required} rows="3" placeholder="Digite sua resposta..." class="w-full px-4 py-3.5 bg-dark-800 border border-dark-600 rounded-xl text-base focus:outline-none focus:border-primary-500 transition-colors resize-none" style="min-height: 100px;"></textarea>`;
+                break;
+            case 'select':
+                input = `
+                    <select name="${campo.id}" ${required} class="w-full px-4 py-3.5 bg-dark-800 border border-dark-600 rounded-xl text-base focus:outline-none focus:border-primary-500 transition-colors appearance-none" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394a3b8%22 stroke-width=%222%22><path d=%22m6 9 6 6 6-6%22/></svg>'); background-repeat: no-repeat; background-position: right 12px center;">
+                        <option value="" disabled selected>Selecione...</option>
+                        ${(campo.opcoes || []).map(o => `<option value="${Utils.escapeHtml(o)}">${Utils.escapeHtml(o)}</option>`).join('')}
+                    </select>
+                `;
+                break;
+            case 'radio':
+                input = `
+                    <div class="space-y-2">
+                        ${(campo.opcoes || []).map((o, i) => `
+                            <label class="flex items-center gap-3 px-4 py-3.5 bg-dark-800 border border-dark-600 rounded-xl cursor-pointer hover:border-primary-500/50 transition-colors has-[:checked]:border-primary-500 has-[:checked]:bg-primary-600/10">
+                                <input type="radio" name="${campo.id}" value="${Utils.escapeHtml(o)}" ${required} class="w-4 h-4 text-primary-600 bg-dark-900 border-dark-600 focus:ring-primary-500">
+                                <span class="text-base">${Utils.escapeHtml(o)}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
+                break;
+            case 'checkbox':
+                input = `
+                    <div class="space-y-2">
+                        ${(campo.opcoes || []).map((o, i) => `
+                            <label class="flex items-center gap-3 px-4 py-3.5 bg-dark-800 border border-dark-600 rounded-xl cursor-pointer hover:border-primary-500/50 transition-colors has-[:checked]:border-primary-500 has-[:checked]:bg-primary-600/10">
+                                <input type="checkbox" name="${campo.id}" value="${Utils.escapeHtml(o)}" class="w-4 h-4 text-primary-600 bg-dark-900 border-dark-600 rounded focus:ring-primary-500">
+                                <span class="text-base">${Utils.escapeHtml(o)}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
+                break;
+            default:
+                input = `<input type="${campo.tipo}" name="${campo.id}" ${required} placeholder="Digite aqui..." class="w-full px-4 py-3.5 bg-dark-800 border border-dark-600 rounded-xl text-base focus:outline-none focus:border-primary-500 transition-colors">`;
+        }
+        
+        return `
+            <div class="fade-in">
+                <label class="block text-sm font-medium text-dark-200 mb-2.5">
+                    ${Utils.escapeHtml(campo.label)}${requiredMark}
+                </label>
+                ${input}
+            </div>
+        `;
+    }
+
+    function submitForm(e, formId) {
+        e.preventDefault();
+        
+        const form = DB.getFormularioById(formId);
+        if (!form) return;
+        
+        const formData = new FormData(e.target);
+        const dados = {};
+        let valid = true;
+        
+        form.campos.forEach(campo => {
+            if (campo.tipo === 'checkbox') {
+                const values = formData.getAll(campo.id);
+                dados[campo.label] = values.join(', ');
+            } else {
+                dados[campo.label] = formData.get(campo.id) || '';
+            }
+            
+            if (campo.obrigatorio && !dados[campo.label]) {
+                valid = false;
+            }
+        });
+        
+        if (!valid) {
+            Toast.show('Preencha todos os campos obrigatórios', 'error');
+            return;
+        }
+        
+        // Desabilitar botão
+        const btn = document.getElementById('submit-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner"></div> Enviando...';
+        
+        // Simular delay de rede
+        setTimeout(() => {
+            DB.saveResposta({
+                formularioId: formId,
+                formularioTitulo: form.titulo,
+                dados
+            });
+            
+            document.getElementById('public-form').classList.add('hidden');
+            document.getElementById('success-message').classList.remove('hidden');
+            
+            Toast.show('Formulário enviado com sucesso!');
+        }, 800);
+    }
+
+    // =====================================================
+    // UTILITÁRIOS: Modal
+    // =====================================================
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    function showCreateFormModal() {
+        fieldCounter = 0;
+        document.getElementById('form-title').value = '';
+        document.getElementById('form-desc').value = '';
+        document.getElementById('fields-container').innerHTML = '';
+        document.getElementById('create-form-modal').classList.remove('hidden');
+        addField(); // Adicionar primeiro campo
+    }
+
+    // =====================================================
+    // PÁGINA: Configurações
+    // =====================================================
+    function renderSettings() {
+        const config = DB.getConfig();
+        const app = document.getElementById('app');
+        const totalForms = DB.getFormularios().length;
+        const totalRespostas = DB.getRespostas().length;
+        
+        const accentColors = [
+            { id: 'indigo', name: 'Índigo', hex: '#6366f1' },
+            { id: 'blue', name: 'Azul', hex: '#3b82f6' },
+            { id: 'emerald', name: 'Esmeralda', hex: '#10b981' },
+            { id: 'amber', name: 'Âmbar', hex: '#f59e0b' },
+            { id: 'rose', name: 'Rosa', hex: '#f43f5e' },
+            { id: 'violet', name: 'Violeta', hex: '#8b5cf6' }
+        ];
+
+        app.innerHTML = `
+            <div class="min-h-screen bg-dark-950">
+                ${Sidebar.render('settings')}
+                <div class="lg:pl-64 pt-16 lg:pt-0">
+                    <div class="max-w-4xl mx-auto px-4 py-8">
+                        <!-- Header -->
+                        <div class="flex items-center justify-between mb-8">
+                            <div>
+                                <h1 class="text-2xl font-bold flex items-center gap-3">
+                                    <i data-lucide="settings" class="w-6 h-6 text-primary-400"></i>
+                                    Configurações
+                                </h1>
+                                <p class="text-dark-400 mt-1">Personalize o sistema FormFlow</p>
+                            </div>
+                            <button onclick="Router.navigate('/admin')" class="px-4 py-2 bg-dark-800 hover:bg-dark-700 rounded-xl text-sm font-medium transition-colors flex items-center gap-2">
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                                Voltar
+                            </button>
+                        </div>
+
+                        <!-- Aparência -->
+                        <div class="bg-dark-900 border border-dark-700 rounded-2xl p-6 mb-6">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-10 h-10 rounded-xl bg-primary-600/10 flex items-center justify-center">
+                                    <i data-lucide="palette" class="w-5 h-5 text-primary-400"></i>
+                                </div>
+                                <div>
+                                    <h2 class="font-semibold">Aparência</h2>
+                                    <p class="text-sm text-dark-400">Tema e cores do sistema</p>
+                                </div>
+                            </div>
+
+                            <!-- Tema -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-dark-300 mb-3">Tema</label>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button onclick="saveSetting('theme', 'dark')" class="p-4 rounded-xl border-2 transition-all text-left ${config.theme === 'dark' ? 'border-primary-500 bg-primary-600/10' : 'border-dark-600 hover:border-dark-500'}">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-lg bg-dark-800 border border-dark-600 flex items-center justify-center">
+                                                <i data-lucide="moon" class="w-4 h-4 text-primary-400"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-medium">Escuro</div>
+                                                <div class="text-xs text-dark-400">Tema padrão</div>
+                                            </div>
+                                        </div>
+                                    </button>
+                                    <button onclick="saveSetting('theme', 'light')" class="p-4 rounded-xl border-2 transition-all text-left ${config.theme === 'light' ? 'border-primary-500 bg-primary-600/10' : 'border-dark-600 hover:border-dark-500'}">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-lg bg-gray-100 border border-gray-300 flex items-center justify-center">
+                                                <i data-lucide="sun" class="w-4 h-4 text-amber-500"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-medium">Claro</div>
+                                                <div class="text-xs text-dark-400">Tema claro</div>
+                                            </div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Cor primária -->
+                            <div>
+                                <label class="block text-sm font-medium text-dark-300 mb-3">Cor primária</label>
+                                <div class="flex flex-wrap gap-3">
+                                    ${accentColors.map(c => `
+                                        <button onclick="saveSetting('accentColor', '${c.id}')" title="${c.name}" class="w-10 h-10 rounded-full transition-all ${config.accentColor === c.id ? 'ring-2 ring-offset-2 ring-offset-dark-900 ring-white scale-110' : 'hover:scale-110'}" style="background-color: ${c.hex}">
+                                            ${config.accentColor === c.id ? '<i data-lucide="check" class="w-4 h-4 text-white mx-auto mt-3"></i>' : ''}
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Logo -->
+                        <div class="bg-dark-900 border border-dark-700 rounded-2xl p-6 mb-6">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-10 h-10 rounded-xl bg-violet-600/10 flex items-center justify-center">
+                                    <i data-lucide="image" class="w-5 h-5 text-violet-400"></i>
+                                </div>
+                                <div>
+                                    <h2 class="font-semibold">Logo</h2>
+                                    <p class="text-sm text-dark-400">Escolha um logo pré-configurado ou envie sua própria imagem</p>
+                                </div>
+                            </div>
+
+                            <!-- Pré-visualização -->
+                            <div class="flex items-center gap-4 p-4 bg-dark-800/50 rounded-xl mb-6">
+                                <div id="logo-preview">${renderLogo('lg')}</div>
+                                <div>
+                                    <div class="font-medium text-sm">Pré-visualização</div>
+                                    <div class="text-xs text-dark-400">Como o logo aparecerá no sistema</div>
+                                </div>
+                            </div>
+
+                            <!-- Logos pré-configurados -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-dark-300 mb-3">Logos pré-configurados</label>
+                                <div class="grid grid-cols-4 gap-3">
+                                    ${Object.entries(LogoPresets).map(([id, p]) => `
+                                        <button onclick="selectLogoPreset('${id}')" title="${id}" class="p-3 rounded-xl border-2 transition-all flex items-center justify-center ${config.logoType === 'preset' && config.logoPreset === id ? 'border-primary-500 bg-primary-600/10' : 'border-dark-600 hover:border-dark-500'}">
+                                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br ${p.gradient} flex items-center justify-center">
+                                                <i data-lucide="${p.icon}" class="w-5 h-5 text-white"></i>
+                                            </div>
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <!-- Enviar imagem personalizada -->
+                            <div>
+                                <label class="block text-sm font-medium text-dark-300 mb-3">Enviar imagem personalizada</label>
+                                <div class="flex flex-col sm:flex-row gap-3">
+                                    <label class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-dark-800 border-2 border-dashed border-dark-600 hover:border-primary-500 rounded-xl cursor-pointer transition-all text-sm text-dark-400 hover:text-primary-400">
+                                        <i data-lucide="upload" class="w-5 h-5"></i>
+                                        <span>${config.logoCustom ? 'Trocar imagem' : 'Selecionar imagem (PNG, JPG, SVG)'}</span>
+                                        <input type="file" accept="image/*" class="hidden" onchange="handleLogoUpload(event)">
+                                    </label>
+                                    ${config.logoCustom ? `
+                                        <button onclick="clearCustomLogo()" class="px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl transition-all text-sm font-medium flex items-center justify-center gap-2">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                            Remover
+                                        </button>
+                                    ` : ''}
+                                </div>
+                                <p class="text-xs text-dark-500 mt-2">A imagem será armazenada localmente no navegador. Recomendado: quadrada, até 200x200px.</p>
+                            </div>
+                        </div>
+
+                        <!-- Geral -->
+                        <div class="bg-dark-900 border border-dark-700 rounded-2xl p-6 mb-6">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-600/10 flex items-center justify-center">
+                                    <i data-lucide="globe" class="w-5 h-5 text-emerald-400"></i>
+                                </div>
+                                <div>
+                                    <h2 class="font-semibold">Geral</h2>
+                                    <p class="text-sm text-dark-400">Informações do sistema</p>
+                                </div>
+                            </div>
+
+                            <div class="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-dark-300 mb-2">Nome do site</label>
+                                    <input id="settings-site-name" type="text" value="${Utils.escapeHtml(config.siteName)}" class="w-full px-4 py-2.5 bg-dark-800 border border-dark-600 rounded-xl text-sm focus:outline-none focus:border-primary-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-dark-300 mb-2">Descrição</label>
+                                    <input id="settings-site-desc" type="text" value="${Utils.escapeHtml(config.siteDesc)}" class="w-full px-4 py-2.5 bg-dark-800 border border-dark-600 rounded-xl text-sm focus:outline-none focus:border-primary-500">
+                                </div>
+                            </div>
+
+                            <div class="mt-4 flex items-center justify-between p-4 bg-dark-800/50 rounded-xl">
+                                <div>
+                                    <div class="font-medium text-sm">Notificações</div>
+                                    <div class="text-xs text-dark-400">Mostrar alertas de novas respostas</div>
+                                </div>
+                                <button onclick="toggleSetting('notifications')" class="relative w-12 h-6 rounded-full transition-colors ${config.notifications ? 'bg-primary-600' : 'bg-dark-600'}">
+                                    <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all ${config.notifications ? 'left-6' : 'left-0.5'}"></span>
+                                </button>
+                            </div>
+
+                            <button onclick="saveGeneralSettings()" class="mt-4 w-full px-4 py-3 bg-primary-600 hover:bg-primary-700 rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="save" class="w-4 h-4"></i>
+                                Salvar Alterações
+                            </button>
+                        </div>
+
+                        <!-- Segurança -->
+                        <div class="bg-dark-900 border border-dark-700 rounded-2xl p-6 mb-6">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-10 h-10 rounded-xl bg-amber-600/10 flex items-center justify-center">
+                                    <i data-lucide="shield" class="w-5 h-5 text-amber-400"></i>
+                                </div>
+                                <div>
+                                    <h2 class="font-semibold">Segurança</h2>
+                                    <p class="text-sm text-dark-400">PIN de acesso ao admin</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-end gap-3">
+                                <div class="flex-1">
+                                    <label class="block text-sm font-medium text-dark-300 mb-2">PIN atual</label>
+                                    <input id="settings-pin-current" type="password" placeholder="••••" class="w-full px-4 py-2.5 bg-dark-800 border border-dark-600 rounded-xl text-sm focus:outline-none focus:border-primary-500">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-sm font-medium text-dark-300 mb-2">Novo PIN</label>
+                                    <input id="settings-pin-new" type="password" placeholder="••••" class="w-full px-4 py-2.5 bg-dark-800 border border-dark-600 rounded-xl text-sm focus:outline-none focus:border-primary-500">
+                                </div>
+                                <button onclick="changePin()" class="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 rounded-xl text-sm font-medium transition-colors">
+                                    Alterar
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Dados -->
+                        <div class="bg-dark-900 border border-dark-700 rounded-2xl p-6 mb-6">
+                            <div class="flex items-center gap-3 mb-6">
+                                <div class="w-10 h-10 rounded-xl bg-rose-600/10 flex items-center justify-center">
+                                    <i data-lucide="database" class="w-5 h-5 text-rose-400"></i>
+                                </div>
+                                <div>
+                                    <h2 class="font-semibold">Dados</h2>
+                                    <p class="text-sm text-dark-400">Gerenciar dados do sistema</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-3 mb-6">
+                                <div class="p-4 bg-dark-800/50 rounded-xl text-center">
+                                    <div class="text-2xl font-bold text-primary-400">${totalForms}</div>
+                                    <div class="text-xs text-dark-400 mt-1">Formulários</div>
+                                </div>
+                                <div class="p-4 bg-dark-800/50 rounded-xl text-center">
+                                    <div class="text-2xl font-bold text-emerald-400">${totalRespostas}</div>
+                                    <div class="text-xs text-dark-400 mt-1">Respostas</div>
+                                </div>
+                                <div class="p-4 bg-dark-800/50 rounded-xl text-center">
+                                    <div class="text-2xl font-bold text-amber-400">${DB.getRespostas().filter(r => r.status === 'pendente').length}</div>
+                                    <div class="text-xs text-dark-400 mt-1">Pendentes</div>
+                                </div>
+                            </div>
+
+                            <div class="grid md:grid-cols-3 gap-3">
+                                <button onclick="exportData()" class="px-4 py-3 bg-dark-800 hover:bg-dark-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                                    <i data-lucide="download" class="w-4 h-4 text-emerald-400"></i>
+                                    Exportar Dados
+                                </button>
+                                <button onclick="document.getElementById('import-file').click()" class="px-4 py-3 bg-dark-800 hover:bg-dark-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2">
+                                    <i data-lucide="upload" class="w-4 h-4 text-blue-400"></i>
+                                    Importar Dados
+                                </button>
+                                <button onclick="clearAllData()" class="px-4 py-3 bg-rose-600/10 hover:bg-rose-600/20 border border-rose-600/30 rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-2 text-rose-400">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    Limpar Tudo
+                                </button>
+                            </div>
+                            <input type="file" id="import-file" accept=".json" class="hidden" onchange="importData(event)">
+                        </div>
+
+                        <!-- Sobre -->
+                        <div class="bg-dark-900 border border-dark-700 rounded-2xl p-6">
+                            <div class="flex items-center gap-3">
+                                ${renderLogo('md')}
+                                <div>
+                                    <h2 class="font-semibold">${Utils.escapeHtml(config.siteName)}</h2>
+                                    <p class="text-sm text-dark-400">${Utils.escapeHtml(config.siteDesc)} · Versão 1.0.0</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+
+    // Aplicar tema salvo
+    function applyTheme() {
+        const config = DB.getConfig();
+        const body = document.body;
+        if (config.theme === 'light') {
+            body.classList.add('theme-light');
+        } else {
+            body.classList.remove('theme-light');
+        }
+        // Aplicar cor primária
+        body.setAttribute('data-accent', config.accentColor || 'indigo');
+        const accentMap = {
+            indigo: '#6366f1',
+            blue: '#3b82f6',
+            emerald: '#10b981',
+            amber: '#f59e0b',
+            rose: '#f43f5e',
+            violet: '#8b5cf6'
+        };
+        const accent = accentMap[config.accentColor] || '#6366f1';
+        document.documentElement.style.setProperty('--accent', accent);
+    }
+
+    // Salvar configuração simples
+    function saveSetting(key, value) {
+        DB.updateConfig({ [key]: value });
+        applyTheme();
+        renderSettings();
+        Toast.show('Configuração salva', 'success');
+    }
+
+    // Alternar toggle
+    function toggleSetting(key) {
+        const config = DB.getConfig();
+        DB.updateConfig({ [key]: !config[key] });
+        renderSettings();
+    }
+
+    // Salvar configurações gerais
+    function saveGeneralSettings() {
+        const siteName = document.getElementById('settings-site-name').value.trim();
+        const siteDesc = document.getElementById('settings-site-desc').value.trim();
+        DB.updateConfig({ siteName: siteName || 'FormFlow', siteDesc: siteDesc || 'Sistema de Formulários' });
+        Toast.show('Configurações gerais salvas', 'success');
+    }
+
+    // Selecionar logo pré-configurado
+    function selectLogoPreset(id) {
+        DB.updateConfig({ logoType: 'preset', logoPreset: id });
+        renderSettings();
+        Toast.show('Logo atualizado', 'success');
+    }
+
+    // Enviar imagem personalizada como logo
+    function handleLogoUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // Validar tipo de arquivo
+        if (!file.type.startsWith('image/')) {
+            Toast.show('Envie um arquivo de imagem válido', 'error');
+            return;
+        }
+        
+        // Limitar tamanho (2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            Toast.show('A imagem deve ter no máximo 2MB', 'error');
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const dataUrl = e.target.result;
+            DB.updateConfig({ logoType: 'custom', logoCustom: dataUrl });
+            renderSettings();
+            Toast.show('Logo personalizado aplicado', 'success');
+        };
+        reader.onerror = function() {
+            Toast.show('Erro ao ler a imagem', 'error');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Remover logo personalizado
+    function clearCustomLogo() {
+        DB.updateConfig({ logoType: 'icon', logoCustom: '' });
+        renderSettings();
+        Toast.show('Logo personalizado removido', 'info');
+    }
+
+    // Alterar PIN
+    function changePin() {
+        const config = DB.getConfig();
+        const current = document.getElementById('settings-pin-current').value;
+        const newPin = document.getElementById('settings-pin-new').value;
+        if (current !== config.adminPin) {
+            Toast.show('PIN atual incorreto', 'error');
+            return;
+        }
+        if (!newPin || newPin.length < 4) {
+            Toast.show('Novo PIN deve ter pelo menos 4 dígitos', 'error');
+            return;
+        }
+        DB.updateConfig({ adminPin: newPin });
+        document.getElementById('settings-pin-current').value = '';
+        document.getElementById('settings-pin-new').value = '';
+        Toast.show('PIN alterado com sucesso', 'success');
+    }
+
+    // Exportar dados
+    function exportData() {
+        const data = {
+            formularios: DB.getFormularios(),
+            respostas: DB.getRespostas(),
+            config: DB.getConfig(),
+            exportedAt: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `formflow-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        Toast.show('Dados exportados com sucesso', 'success');
+    }
+
+    // Importar dados
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+                if (data.formularios) {
+                    localStorage.setItem(DB.KEYS.FORMULARIOS, JSON.stringify(data.formularios));
+                }
+                if (data.respostas) {
+                    localStorage.setItem(DB.KEYS.RESPOSTAS, JSON.stringify(data.respostas));
+                }
+                if (data.config) {
+                    localStorage.setItem(DB.KEYS.CONFIG, JSON.stringify(data.config));
+                }
+                Toast.show('Dados importados com sucesso', 'success');
+                renderSettings();
+            } catch (err) {
+                Toast.show('Arquivo inválido', 'error');
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    }
+
+    // Limpar todos os dados
+    function clearAllData() {
+        if (confirm('Tem certeza que deseja apagar TODOS os dados? Esta ação não pode ser desfeita.')) {
+            localStorage.removeItem(DB.KEYS.FORMULARIOS);
+            localStorage.removeItem(DB.KEYS.RESPOSTAS);
+            DB.init();
+            Toast.show('Todos os dados foram apagados', 'info');
+            renderSettings();
+        }
+    }
+
+    // =====================================================
+    // INICIALIZAÇÃO DO SISTEMA
+    // =====================================================
+    function init() {
+        DB.init();
+        DB.generateSampleData();
+        applyTheme();
+        
+        // Registrar rotas
+        Router.register('/', renderDashboard);
+        Router.register('/landing', renderLanding);
+        Router.register('/admin', renderDashboard);
+        Router.register('/admin/forms', renderForms);
+        Router.register('/admin/received', renderReceived);
+        Router.register('/admin/history', renderHistory);
+        Router.register('/admin/settings', renderSettings);
+        Router.register('/form-view', renderFormView);
+        
+        // Iniciar router
+        Router.init();
+    }
+
+    // Iniciar quando DOM estiver pronto
+    document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
