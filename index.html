@@ -739,6 +739,18 @@
             }
         },
 
+        // Limpar todos os dados (formulários, respostas e flag de exemplo)
+        clearAll() {
+            localStorage.removeItem(this.KEYS.FORMULARIOS);
+            localStorage.removeItem(this.KEYS.RESPOSTAS);
+            localStorage.setItem(this.KEYS.FORMULARIOS, JSON.stringify([]));
+            localStorage.setItem(this.KEYS.RESPOSTAS, JSON.stringify([]));
+            // Marca que os dados de exemplo não devem ser recriados
+            const config = this.getConfig();
+            config.dataCleared = true;
+            localStorage.setItem(this.KEYS.CONFIG, JSON.stringify(config));
+        },
+
         // Formulários
         getFormularios() {
             return JSON.parse(localStorage.getItem(this.KEYS.FORMULARIOS) || '[]');
@@ -822,6 +834,9 @@
 
         // Gerar dados de exemplo
         generateSampleData() {
+            // Se o usuário já limpou os dados, não recriar os exemplos
+            if (this.getConfig().dataCleared) return;
+
             const sampleForms = [
                 {
                     id: 'sample1',
@@ -3091,9 +3106,7 @@
     // Limpar todos os dados
     function clearAllData() {
         if (confirm('Tem certeza que deseja apagar TODOS os dados? Esta ação não pode ser desfeita.')) {
-            localStorage.removeItem(DB.KEYS.FORMULARIOS);
-            localStorage.removeItem(DB.KEYS.RESPOSTAS);
-            DB.init();
+            DB.clearAll();
             Toast.show('Todos os dados foram apagados', 'info');
             renderSettings();
         }
