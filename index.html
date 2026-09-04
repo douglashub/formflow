@@ -713,95 +713,145 @@
     // =====================================================
 
     // =====================================================
-    // MÓDULO: Armazenamento Local (Simula Banco de Dados)
+    // MÓDULO: Banco de Dados (API central)
     // =====================================================
     const DB = {
-        // Chaves do localStorage
-        KEYS: {
-            FORMULARIOS: 'formflow_formularios',
-            RESPOSTAS: 'formflow_respostas',
-            CONFIG: 'formflow_config'
+        // Cache em memória
+        _cache: {
+            formularios: [],
+            respostas: [],
+            config: null
+        },
+        _loaded: false,
+
+        // URL base da API (mesmo host)
+        get apiBase() {
+            return window.location.origin;
         },
 
-        // Inicializar dados padrão
-        init() {
-            if (!localStorage.getItem(this.KEYS.FORMULARIOS)) {
-                localStorage.setItem(this.KEYS.FORMULARIOS, JSON.stringify([]));
-            }
-            if (!localStorage.getItem(this.KEYS.RESPOSTAS)) {
-                localStorage.setItem(this.KEYS.RESPOSTAS, JSON.stringify([]));
-            }
-            if (!localStorage.getItem(this.KEYS.CONFIG)) {
-                localStorage.setItem(this.KEYS.CONFIG, JSON.stringify({
+        // Inicializar: carregar dados da API
+        async init() {
+            try {
+                const [formsRes, respRes, configRes] = await Promise.all([
+                    fetch(`${this.apiBase}/api/formularios`),
+                    fetch(`${this.apiBase}/api/respostas`),
+                    fetch(`${this.apiBase}/api/config`)
+                ]);
+                this._cache.formularios = await formsRes.json();
+                this._cache.respostas = await respRes.json();
+                this._cache.config = await configRes.json();
+                this._loaded = true;
+            } catch (e) {
+                console.error('Erro ao carregar dados da API:', e);
+                this._cache.formularios = [];
+                this._cache.respostas = [];
+                this._cache.config = {
                     adminPin: '1234',
-                    theme: 'dark'
-                }));
+                    theme: 'dark',
+                    siteName: 'FormFlow',
+                    siteDesc: 'Sistema de Formulários',
+                    accentColor: 'indigo',
+                    notifications: true,
+                    compactMode: false,
+                    logoType: 'icon',
+                    logoPreset: 'file-text',
+                    logoCustom: ''
+                };
             }
         },
 
-        // Limpar todos os dados (formulários, respostas e flag de exemplo)
-        clearAll() {
-            localStorage.removeItem(this.KEYS.FORMULARIOS);
-            localStorage.removeItem(this.KEYS.RESPOSTAS);
-            localStorage.setItem(this.KEYS.FORMULARIOS, JSON.stringify([]));
-            localStorage.setItem(this.KEYS.RESPOSTAS, JSON.stringify([]));
-            // Marca que os dados de exemplo não devem ser recriados
-            const config = this.getConfig();
-            config.dataCleared = true;
-            localStorage.setItem(this.KEYS.CONFIG, JSON.stringify(config));
+        // Limpar todos os dados
+        async clearAll() {
+            try {
+                await fetch(`${this.apiBase}/api/clear`, { method: 'POST' });
+                this._cache.formularios = [];
+                this._cache.respostas = [];
+                if (this._cache.config) this._cache.config.dataCleared = true;
+            } catch (e) {
+                console.error('Erro ao limpar dados:', e);
+            }
         },
 
         // Formulários
         getFormularios() {
-            return JSON.parse(localStorage.getItem(this.KEYS.FORMULARIOS) || '[]');
+            return this._cache.formularios || [];
         },
 
-        saveFormulario(form) {
-            const forms = this.getFormularios();
-            form.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-            form.createdAt = new Date().toISOString();
-            forms.push(form);
-            localStorage.setItem(this.KEYS.FORMULARIOS, JSON.stringify(forms));
-            return form;
+        async saveFormulario(form) {
+            try {
+                const res = await fetch(`${this.apiBase}/api/formularios`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(form)
+                });
+                const saved = await res.json();
+                this._cache.formularios.push(saved);
+                return saved;
+            } catch (e) {
+                console.error('Erro ao salvar formulário:', e);
+                return form;
+            }
         },
 
         getFormularioById(id) {
             return this.getFormularios().find(f => f.id === id);
         },
 
-        deleteFormulario(id) {
-            const forms = this.getFormularios().filter(f => f.id !== id);
-            localStorage.setItem(this.KEYS.FORMULARIOS, JSON.stringify(forms));
+        async deleteFormulario(id) {
+            try {
+                await fetch(`${this.apiBase}/api/formularios/${id}`, { method: 'DELETE' });
+                this._cache.formularios = this._cache.formularios.filter(f => f.id !== id);
+                this._cache.respostas = this._cache.respostas.filter(r => r.formularioId !== id);
+            } catch (e) {
+                console.error('Erro ao excluir formulário:', e);
+            }
         },
 
         // Respostas
         getRespostas() {
-            return JSON.parse(localStorage.getItem(this.KEYS.RESPOSTAS) || '[]');
+            return this._cache.respostas || [];
         },
 
-        saveResposta(resposta) {
-            const respostas = this.getRespostas();
-            resposta.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-            resposta.receivedAt = new Date().toISOString();
-            resposta.status = 'pendente';
-            respostas.push(resposta);
-            localStorage.setItem(this.KEYS.RESPOSTAS, JSON.stringify(respostas));
-            return resposta;
-        },
-
-        updateRespostaStatus(id, status) {
-            const respostas = this.getRespostas();
-            const idx = respostas.findIndex(r => r.id === id);
-            if (idx !== -1) {
-                respostas[idx].status = status;
-                respostas[idx].updatedAt = new Date().toISOString();
-                localStorage.setItem(this.KEYS.RESPOSTAS, JSON.stringify(respostas));
+        async saveResposta(resposta) {
+            try {
+                const res = await fetch(`${this.apiBase}/api/respostas`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(resposta)
+                });
+                const saved = await res.json();
+                this._cache.respostas.push(saved);
+                return saved;
+            } catch (e) {
+                console.error('Erro ao salvar resposta:', e);
+                return resposta;
             }
         },
 
-        deleteResposta(id) {
-            const respostas = this.getRespostas().filter(r => r.id !== id);
-            localStorage.setItem(this.KEYS.RESPOSTAS, JSON.stringify(respostas));
+        async updateRespostaStatus(id, status) {
+            try {
+                await fetch(`${this.apiBase}/api/respostas/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+                const idx = this._cache.respostas.findIndex(r => r.id === id);
+                if (idx !== -1) {
+                    this._cache.respostas[idx].status = status;
+                    this._cache.respostas[idx].updatedAt = new Date().toISOString();
+                }
+            } catch (e) {
+                console.error('Erro ao atualizar resposta:', e);
+            }
+        },
+
+        async deleteResposta(id) {
+            try {
+                await fetch(`${this.apiBase}/api/respostas/${id}`, { method: 'DELETE' });
+                this._cache.respostas = this._cache.respostas.filter(r => r.id !== id);
+            } catch (e) {
+                console.error('Erro ao excluir resposta:', e);
+            }
         },
 
         getRespostasByFormulario(formId) {
@@ -822,108 +872,36 @@
                 logoPreset: 'file-text',
                 logoCustom: ''
             };
-            return { ...defaults, ...(JSON.parse(localStorage.getItem(this.KEYS.CONFIG) || '{}')) };
+            return { ...defaults, ...(this._cache.config || {}) };
         },
 
-        updateConfig(patch) {
+        async updateConfig(patch) {
             const config = this.getConfig();
             const updated = { ...config, ...patch };
-            localStorage.setItem(this.KEYS.CONFIG, JSON.stringify(updated));
+            this._cache.config = updated;
+            try {
+                await fetch(`${this.apiBase}/api/config`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updated)
+                });
+            } catch (e) {
+                console.error('Erro ao atualizar config:', e);
+            }
             return updated;
         },
 
-        // Gerar dados de exemplo
-        generateSampleData() {
-            // Se o usuário já limpou os dados, não recriar os exemplos
-            if (this.getConfig().dataCleared) return;
-
-            const sampleForms = [
-                {
-                    id: 'sample1',
-                    titulo: 'Cadastro de Cliente',
-                    descricao: 'Formulário de cadastro para novos clientes',
-                    campos: [
-                        { id: 'c1', tipo: 'texto', label: 'Nome Completo', obrigatorio: true },
-                        { id: 'c2', tipo: 'email', label: 'E-mail', obrigatorio: true },
-                        { id: 'c3', tipo: 'tel', label: 'Telefone', obrigatorio: false },
-                        { id: 'c4', tipo: 'textarea', label: 'Observações', obrigatorio: false }
-                    ],
-                    createdAt: new Date(Date.now() - 86400000 * 7).toISOString()
-                },
-                {
-                    id: 'sample2',
-                    titulo: 'Pesquisa de Satisfação',
-                    descricao: 'Ajude-nos a melhorar nossos serviços',
-                    campos: [
-                        { id: 'c5', tipo: 'texto', label: 'Seu Nome', obrigatorio: false },
-                        { id: 'c6', tipo: 'select', label: 'Nota', opcoes: ['1 - Péssimo', '2 - Ruim', '3 - Regular', '4 - Bom', '5 - Excelente'], obrigatorio: true },
-                        { id: 'c7', tipo: 'textarea', label: 'O que podemos melhorar?', obrigatorio: false },
-                        { id: 'c8', tipo: 'radio', label: 'Recomendaria nosso serviço?', opcoes: ['Sim', 'Não', 'Talvez'], obrigatorio: true }
-                    ],
-                    createdAt: new Date(Date.now() - 86400000 * 3).toISOString()
-                },
-                {
-                    id: 'sample3',
-                    titulo: 'Agendamento de Consulta',
-                    descricao: 'Preencha para agendar sua consulta',
-                    campos: [
-                        { id: 'c9', tipo: 'texto', label: 'Nome do Paciente', obrigatorio: true },
-                        { id: 'c10', tipo: 'date', label: 'Data Preferida', obrigatorio: true },
-                        { id: 'c11', tipo: 'select', label: 'Tipo de Consulta', opcoes: ['Primeira Consulta', 'Retorno', 'Emergência', 'Check-up'], obrigatorio: true },
-                        { id: 'c12', tipo: 'textarea', label: 'Descreva seus sintomas', obrigatorio: false }
-                    ],
-                    createdAt: new Date(Date.now() - 86400000 * 1).toISOString()
+        // Gerar dados de exemplo (via API)
+        async generateSampleData() {
+            try {
+                const res = await fetch(`${this.apiBase}/api/sample-data`, { method: 'POST' });
+                const result = await res.json();
+                if (result.success) {
+                    // Recarregar dados do servidor
+                    await this.init();
                 }
-            ];
-
-            const sampleRespostas = [
-                {
-                    id: 'resp1',
-                    formularioId: 'sample1',
-                    formularioTitulo: 'Cadastro de Cliente',
-                    dados: { 'Nome Completo': 'Maria Silva', 'E-mail': 'maria@email.com', 'Telefone': '(11) 99999-1234', 'Observações': 'Cliente indicado por João' },
-                    status: 'lido',
-                    receivedAt: new Date(Date.now() - 86400000 * 6).toISOString()
-                },
-                {
-                    id: 'resp2',
-                    formularioId: 'sample1',
-                    formularioTitulo: 'Cadastro de Cliente',
-                    dados: { 'Nome Completo': 'Pedro Santos', 'E-mail': 'pedro.santos@email.com', 'Telefone': '(21) 98888-5678', 'Observações': '' },
-                    status: 'pendente',
-                    receivedAt: new Date(Date.now() - 86400000 * 2).toISOString()
-                },
-                {
-                    id: 'resp3',
-                    formularioId: 'sample2',
-                    formularioTitulo: 'Pesquisa de Satisfação',
-                    dados: { 'Seu Nome': 'Ana Costa', 'Nota': '5 - Excelente', 'O que podemos melhorar?': 'Tudo perfeito!', 'Recomendaria nosso serviço?': 'Sim' },
-                    status: 'lido',
-                    receivedAt: new Date(Date.now() - 86400000 * 1).toISOString()
-                },
-                {
-                    id: 'resp4',
-                    formularioId: 'sample2',
-                    formularioTitulo: 'Pesquisa de Satisfação',
-                    dados: { 'Seu Nome': 'Carlos Oliveira', 'Nota': '3 - Regular', 'O que podemos melhorar?': 'Velocidade do atendimento poderia ser melhor', 'Recomendaria nosso serviço?': 'Talvez' },
-                    status: 'arquivado',
-                    receivedAt: new Date(Date.now() - 86400000 * 5).toISOString()
-                },
-                {
-                    id: 'resp5',
-                    formularioId: 'sample3',
-                    formularioTitulo: 'Agendamento de Consulta',
-                    dados: { 'Nome do Paciente': 'Lucia Fernandes', 'Data Preferida': '2026-09-10', 'Tipo de Consulta': 'Primeira Consulta', 'Descreva seus sintomas': 'Dor de cabeça frequente' },
-                    status: 'pendente',
-                    receivedAt: new Date(Date.now() - 3600000 * 5).toISOString()
-                }
-            ];
-
-            if (this.getFormularios().length === 0) {
-                localStorage.setItem(this.KEYS.FORMULARIOS, JSON.stringify(sampleForms));
-            }
-            if (this.getRespostas().length === 0) {
-                localStorage.setItem(this.KEYS.RESPOSTAS, JSON.stringify(sampleRespostas));
+            } catch (e) {
+                console.error('Erro ao gerar dados de exemplo:', e);
             }
         }
     };
@@ -1915,7 +1893,7 @@
         }
     }
 
-    function saveForm() {
+    async function saveForm() {
         const title = document.getElementById('form-title').value.trim();
         const desc = document.getElementById('form-desc').value.trim();
         const fieldItems = document.querySelectorAll('.field-item');
@@ -1961,7 +1939,7 @@
         
         if (!valid || campos.length === 0) return;
         
-        DB.saveFormulario({ titulo: title, descricao: desc, campos });
+        await DB.saveFormulario({ titulo: title, descricao: desc, campos });
         closeModal('create-form-modal');
         Toast.show('Formulário criado com sucesso!');
         renderForms();
@@ -1977,9 +1955,9 @@
         window.open(Utils.getFormLink(formId), '_blank');
     }
 
-    function deleteForm(formId) {
+    async function deleteForm(formId) {
         if (confirm('Tem certeza que deseja excluir este formulário?')) {
-            DB.deleteFormulario(formId);
+            await DB.deleteFormulario(formId);
             Toast.show('Formulário excluído', 'info');
             renderForms();
         }
@@ -2112,13 +2090,13 @@
         });
     }
 
-    function viewResposta(id) {
+    async function viewResposta(id) {
         const r = DB.getRespostas().find(resp => resp.id === id);
         if (!r) return;
         
         // Marcar como lido
         if (r.status === 'pendente') {
-            DB.updateRespostaStatus(id, 'lido');
+            await DB.updateRespostaStatus(id, 'lido');
             r.status = 'lido';
         }
         
@@ -2160,8 +2138,8 @@
         lucide.createIcons({ nodes: [document.getElementById('modal-actions')] });
     }
 
-    function changeStatus(id, status) {
-        DB.updateRespostaStatus(id, status);
+    async function changeStatus(id, status) {
+        await DB.updateRespostaStatus(id, status);
         Toast.show(`Status alterado para "${status}"`, 'info');
         closeModal('view-resposta-modal');
         
@@ -2172,19 +2150,19 @@
         else renderDashboard();
     }
 
-    function cycleStatus(id) {
+    async function cycleStatus(id) {
         const r = DB.getRespostas().find(resp => resp.id === id);
         if (!r) return;
         const order = ['pendente', 'lido', 'arquivado'];
         const next = order[(order.indexOf(r.status) + 1) % order.length];
-        DB.updateRespostaStatus(id, next);
+        await DB.updateRespostaStatus(id, next);
         Toast.show(`Status alterado para "${next}"`, 'info');
         renderReceived();
     }
 
-    function deleteResposta(id) {
+    async function deleteResposta(id) {
         if (confirm('Excluir esta resposta permanentemente?')) {
-            DB.deleteResposta(id);
+            await DB.deleteResposta(id);
             closeModal('view-resposta-modal');
             Toast.show('Resposta excluída', 'info');
             const hash = window.location.hash.slice(1).split('?')[0];
@@ -2611,7 +2589,7 @@
         `;
     }
 
-    function submitForm(e, formId) {
+    async function submitForm(e, formId) {
         e.preventDefault();
         
         const form = DB.getFormularioById(formId);
@@ -2644,19 +2622,17 @@
         btn.disabled = true;
         btn.innerHTML = '<div class="spinner"></div> Enviando...';
         
-        // Simular delay de rede
-        setTimeout(() => {
-            DB.saveResposta({
-                formularioId: formId,
-                formularioTitulo: form.titulo,
-                dados
-            });
-            
-            document.getElementById('public-form').classList.add('hidden');
-            document.getElementById('success-message').classList.remove('hidden');
-            
-            Toast.show('Formulário enviado com sucesso!');
-        }, 800);
+        // Enviar para a API
+        await DB.saveResposta({
+            formularioId: formId,
+            formularioTitulo: form.titulo,
+            dados
+        });
+        
+        document.getElementById('public-form').classList.add('hidden');
+        document.getElementById('success-message').classList.remove('hidden');
+        
+        Toast.show('Formulário enviado com sucesso!');
     }
 
     // =====================================================
@@ -2973,31 +2949,31 @@
     }
 
     // Salvar configuração simples
-    function saveSetting(key, value) {
-        DB.updateConfig({ [key]: value });
+    async function saveSetting(key, value) {
+        await DB.updateConfig({ [key]: value });
         applyTheme();
         renderSettings();
         Toast.show('Configuração salva', 'success');
     }
 
     // Alternar toggle
-    function toggleSetting(key) {
+    async function toggleSetting(key) {
         const config = DB.getConfig();
-        DB.updateConfig({ [key]: !config[key] });
+        await DB.updateConfig({ [key]: !config[key] });
         renderSettings();
     }
 
     // Salvar configurações gerais
-    function saveGeneralSettings() {
+    async function saveGeneralSettings() {
         const siteName = document.getElementById('settings-site-name').value.trim();
         const siteDesc = document.getElementById('settings-site-desc').value.trim();
-        DB.updateConfig({ siteName: siteName || 'FormFlow', siteDesc: siteDesc || 'Sistema de Formulários' });
+        await DB.updateConfig({ siteName: siteName || 'FormFlow', siteDesc: siteDesc || 'Sistema de Formulários' });
         Toast.show('Configurações gerais salvas', 'success');
     }
 
     // Selecionar logo pré-configurado
-    function selectLogoPreset(id) {
-        DB.updateConfig({ logoType: 'preset', logoPreset: id });
+    async function selectLogoPreset(id) {
+        await DB.updateConfig({ logoType: 'preset', logoPreset: id });
         renderSettings();
         Toast.show('Logo atualizado', 'success');
     }
@@ -3020,9 +2996,9 @@
         }
         
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
             const dataUrl = e.target.result;
-            DB.updateConfig({ logoType: 'custom', logoCustom: dataUrl });
+            await DB.updateConfig({ logoType: 'custom', logoCustom: dataUrl });
             renderSettings();
             Toast.show('Logo personalizado aplicado', 'success');
         };
@@ -3033,14 +3009,14 @@
     }
 
     // Remover logo personalizado
-    function clearCustomLogo() {
-        DB.updateConfig({ logoType: 'icon', logoCustom: '' });
+    async function clearCustomLogo() {
+        await DB.updateConfig({ logoType: 'icon', logoCustom: '' });
         renderSettings();
         Toast.show('Logo personalizado removido', 'info');
     }
 
     // Alterar PIN
-    function changePin() {
+    async function changePin() {
         const config = DB.getConfig();
         const current = document.getElementById('settings-pin-current').value;
         const newPin = document.getElementById('settings-pin-new').value;
@@ -3052,7 +3028,7 @@
             Toast.show('Novo PIN deve ter pelo menos 4 dígitos', 'error');
             return;
         }
-        DB.updateConfig({ adminPin: newPin });
+        await DB.updateConfig({ adminPin: newPin });
         document.getElementById('settings-pin-current').value = '';
         document.getElementById('settings-pin-new').value = '';
         Toast.show('PIN alterado com sucesso', 'success');
@@ -3104,9 +3080,9 @@
     }
 
     // Limpar todos os dados
-    function clearAllData() {
+    async function clearAllData() {
         if (confirm('Tem certeza que deseja apagar TODOS os dados? Esta ação não pode ser desfeita.')) {
-            DB.clearAll();
+            await DB.clearAll();
             Toast.show('Todos os dados foram apagados', 'info');
             renderSettings();
         }
@@ -3115,9 +3091,10 @@
     // =====================================================
     // INICIALIZAÇÃO DO SISTEMA
     // =====================================================
-    function init() {
-        DB.init();
-        DB.generateSampleData();
+    async function init() {
+        // Carregar dados da API
+        await DB.init();
+        await DB.generateSampleData();
         applyTheme();
         
         // Registrar rotas
